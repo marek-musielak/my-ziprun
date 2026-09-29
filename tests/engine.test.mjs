@@ -74,9 +74,17 @@ describe('prędkość zadana', () => {
   });
 
   test('nigdy nie przekracza limitu z profilu', () => {
+    engine.load(PLAN, { ...DEFAULT_PROFILE, maxSpeedCap: 12 });
     engine.speedFactor = 1.5;
     engine.speedOffset = 2;
-    assert.equal(engine.targetSpeedFor(engine.plan.segments[1]), DEFAULT_PROFILE.maxSpeedCap);
+    assert.equal(engine.targetSpeedFor(engine.plan.segments[1]), 12);
+  });
+
+  test('nachylenie nigdy nie przekracza limitu z profilu', () => {
+    engine.load({ ...PLAN, segments: [{ t: 60, s: 5, i: 15, kind: 'work', label: 'Pod górę' }] },
+      { ...DEFAULT_PROFILE, maxInclineCap: 10 });
+    engine.inclineOffset = 3;
+    assert.equal(engine.targetInclineFor(engine.segment), 10);
   });
 
   test('nigdy nie schodzi poniżej zera', () => {

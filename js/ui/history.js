@@ -3,7 +3,7 @@
 import { fmtTime } from '../plans.js';
 import { Trace } from '../trace.js';
 import * as store from '../storage.js';
-import { $, els, toast, plural, downloadText, stamp } from './core.js';
+import { $, els, toast, plural, esc, downloadText, stamp } from './core.js';
 import { naWejscie } from './nav.js';
 import { downsample } from './charts.js';
 
@@ -95,7 +95,7 @@ function wpisHistorii(x, wszystkie, idx) {
   return (
     '<div class="hist' + (x.completed ? '' : ' dnf') + '">' +
       '<div class="hist-top">' +
-        '<div><div class="nm">' + (x.planName || '—') + '</div>' +
+        '<div><div class="nm">' + esc(x.planName || '—') + '</div>' +
         '<div class="dt">' + data.toLocaleString('pl-PL') +
         (x.completed ? '' : ' · przerwany' + postep) + '</div></div>' +
         '<div class="st"><div>' + liczba(km) + ' km</div>' +
@@ -104,7 +104,7 @@ function wpisHistorii(x, wszystkie, idx) {
       '<div class="hist-det">' +
         iskierka(x.samples) +
         '<div class="hist-facts">' +
-          fakty.map(([k, v]) => '<div><span>' + k + '</span><b>' + v + '</b></div>').join('') +
+          fakty.map(([k, v]) => '<div><span>' + k + '</span><b>' + esc(v) + '</b></div>').join('') +
         '</div>' +
         porownanie +
       '</div>' +
@@ -122,7 +122,7 @@ function renderTraces() {
   box.innerHTML = list
     .map((t, i) =>
       '<button class="trace" data-trace="' + i + '">' +
-      '<span class="nm">' + (t.planName || '—') + (t.completed ? '' : ' · przerwany') + '</span>' +
+      '<span class="nm">' + esc(t.planName || '—') + (t.completed ? '' : ' · przerwany') + '</span>' +
       '<span class="dt">' + new Date(t.date).toLocaleString('pl-PL') + ' · ' +
       (t.data?.metrics?.length || 0) + ' pomiarów, ' + (t.data?.events?.length || 0) + ' zdarzeń</span>' +
       '<span class="dl">Zapisz ↓</span></button>'

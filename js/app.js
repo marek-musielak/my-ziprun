@@ -15,6 +15,7 @@ import './ui/summary.js';
 import './ui/history.js';
 import { renderProfile } from './ui/profile.js';
 import './ui/device.js';
+import { sprawdzLinkPlanu } from './ui/import.js';
 
 /**
  * Gdyby pliki aplikacji pochodziły z różnych wydań, kod wywaliłby się dopiero
@@ -26,6 +27,7 @@ function sprawdzSpojnoscPlikow() {
   const wymagane = [
     'run-kind', 'run-label', 'run-segtime', 'run-speed', 'run-target', 'run-mini',
     'run-next', 'run-factor', 'kr-typy', 'kr-czas', 'kr-chart', 'btn-new-plan', 'btn-fav', 'btn-mode', 'btn-end', 'c-stop', 'c-pause', 'ring-fg', 'ring-segments',
+    'btn-import-plan', 'p-limits',
   ];
   const brakuje = wymagane.filter((id) => !$(id));
   if (!brakuje.length) return;
@@ -52,6 +54,8 @@ renderProfile();
 updateInclineUi();
 announceUpdate();
 if (stan.settings.lastDeviceName) $('btn-connect').textContent = 'Połącz: ' + stan.settings.lastDeviceName;
+// Po wpisie bazowym historii: gest wstecz z podglądu planu wraca do listy.
+sprawdzLinkPlanu();
 
 // Ostrzeżenie przed zamknięciem karty w trakcie treningu — pas by dalej chodził.
 window.addEventListener('beforeunload', (e) => {

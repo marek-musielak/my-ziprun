@@ -3,7 +3,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  PLANS, DEFAULT_PROFILE, anchorSpeed, resolvePlan, planById, fmtTime, cooperVo2, KIND_LABEL,
+  PLANS, DEFAULT_PROFILE, anchorSpeed, resolvePlan, planById, fmtTime, cooperVo2, KIND_LABEL, limityZBiezni,
 } from '../js/plans.js';
 
 const KOTWICE = ['stroll', 'walk', 'brisk', 'jog', 'easy', 'steady', 'tempo', 'threshold', 'vo2', 'sprint'];
@@ -61,6 +61,35 @@ describe('plany wbudowane', () => {
     const przed = resolvePlan(plan, DEFAULT_PROFILE).estDistanceKm;
     const po = resolvePlan(plan, { ...DEFAULT_PROFILE, easy: 9, fast: 11.5 }).estDistanceKm;
     assert.ok(po > przed);
+  });
+});
+
+describe('limityZBiezni', () => {
+  const caps = (speedRange, inclineRange, incline = true) => ({ speed: true, incline, speedRange, inclineRange });
+
+  test('odczytany zakres staje się limitem — także wyższym niż dotychczasowy', () => {
+    assert.deepEqual(
+      limityZBiezni(caps({ min: 1, max: 22, odczytany: true }, { min: 0, max: 20, odczytany: true })),
+      { maxSpeedCap: 22, maxInclineCap: 20 });
+  });
+
+  test('domyślny zakres sterownika, nieodczytany z bieżni, niczego nie zmienia', () => {
+    assert.deepEqual(limityZBiezni(caps({ min: 1, max: 16 }, { min: 0, max: 5 })), {});
+  });
+
+  test('bieżnia bez sterowanej pochylni dostaje limit nachylenia zero', () => {
+    const l = limityZBiezni(caps({ min: 1, max: 12, odczytany: true }, { min: 0, max: 0 }, false));
+    assert.deepEqual(l, { maxSpeedCap: 12, maxInclineCap: 0 });
+  });
+
+  test('nonsensowny odczyt nie staje się limitem', () => {
+    assert.deepEqual(limityZBiezni(caps({ min: 0, max: 0, odczytany: true }, { max: -5, odczytany: true })), {});
+    assert.deepEqual(limityZBiezni(caps({ min: 1, max: 655.35, odczytany: true }, undefined, false)), { maxInclineCap: 0 });
+  });
+
+  test('bez połączenia nie ma czego przyjmować', () => {
+    assert.deepEqual(limityZBiezni({ control: false, speed: false, incline: false }), {});
+    assert.deepEqual(limityZBiezni(undefined), {});
   });
 });
 

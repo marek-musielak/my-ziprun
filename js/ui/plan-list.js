@@ -5,7 +5,7 @@ import { VERSION } from '../version.js';
 import * as store from '../storage.js';
 import {
   $, els, tm, speech, keeper, engine, trace, stan,
-  czyUlubiony, wszystkiePlany, znajdzPlan, toast,
+  czyUlubiony, wszystkiePlany, znajdzPlan, toast, esc,
 } from './core.js';
 import { goto } from './nav.js';
 import { chartHtml, listaSegmentow } from './charts.js';
@@ -40,10 +40,12 @@ export function renderPlans() {
     const r = resolvePlan(plan, stan.profile);
     const speeds = r.segments.map((s) => s.speed);
     const btn = document.createElement('button');
-    btn.className = 'plan l' + plan.level;
+    // Plany z edytora nie mają poziomu trudności — karta zostaje wtedy
+    // w kolorze akcentu zamiast klasy „lundefined".
+    btn.className = 'plan' + (plan.level ? ' l' + plan.level : '');
     btn.innerHTML =
-      '<div class="focus">' + plan.focus + '</div>' +
-      '<h3>' + (czyUlubiony(plan.id) ? '<span class="fav">★</span>' : '') + plan.name +
+      '<div class="focus">' + esc(plan.focus) + '</div>' +
+      '<h3>' + (czyUlubiony(plan.id) ? '<span class="fav">★</span>' : '') + esc(plan.name) +
         (plan.custom ? '<span class="own">mój</span>' : '') + '</h3>' +
       '<div class="row">' +
         '<span>' + Math.round(r.totalSeconds / 60) + ' min</span>' +
@@ -140,18 +142,35 @@ export function odswiezOstrzezenia() {
   warn.classList.toggle('hidden', notes.length === 0);
 }
 
-export function openPlan(id) {
-  const plan = znajdzPlan(id);
+export const openPlan = (id) => pokazPlan(znajdzPlan(id));
+
+/**
+ * Podgląd planu z linku. Plan nie jest jeszcze zapisany, więc zamiast startu
+ * treningu, ulubionych i usuwania jest jeden przycisk: dodaj albo zaktualizuj.
+ */
+export const pokazPodglad = (plan) => pokazPlan(plan, { podglad: true });
+
+function pokazPlan(plan, { podglad = false } = {}) {
   stan.selectedPlan = resolvePlan(plan, stan.profile);
+  stan.podglad = podglad ? plan : null;
   const r = stan.selectedPlan;
 
   $('pd-name').textContent = plan.name;
   $('pd-meta').innerHTML =
-    '<span>' + plan.focus + '</span>' +
+    '<span>' + esc(plan.focus) + '</span>' +
     '<span>' + Math.round(r.totalSeconds / 60) + ' min</span>' +
     '<span>~' + r.estDistanceKm.toFixed(2).replace('.', ',') + ' km</span>' +
-    '<span>poziom ' + plan.level + '/3</span>';
-  $('pd-desc').textContent = plan.desc;
+    (plan.level ? '<span>poziom ' + plan.level + '/3</span>' : '');
+  $('pd-desc').textContent = podglad
+    ? 'Podgląd planu z linku — nie jest jeszcze zapisany. Dodaj go, żeby móc go uruchomić.'
+    : plan.desc;
+
+  const juzJest = stan.wlasnePlany.some((p) => p.id === plan.id);
+  const imp = $('btn-import-plan');
+  imp.textContent = juzJest ? 'Zaktualizuj plan' : 'Dodaj do moich planów';
+  imp.classList.toggle('hidden', !podglad);
+  $('btn-start').classList.toggle('hidden', podglad);
+  $('btn-fav').classList.toggle('hidden', podglad);
 
   const maxSpeed = Math.max(...r.segments.map((s) => s.speed), 1);
   $('pd-chart').innerHTML = chartHtml(r.segments, maxSpeed);
@@ -161,11 +180,23 @@ export function openPlan(id) {
   odswiezOstrzezenia();
 
   // Usunąć można tylko własny plan — wbudowanych nie ma jak odtworzyć.
-  $('btn-delete-plan').classList.toggle('hidden', !plan.custom);
+  $('btn-delete-plan').classList.toggle('hidden', !plan.custom || podglad);
   odswiezPrzyciskUlubionych();
 
   goto('plan');
 }
+
+$('btn-import-plan').addEventListener('click', () => {
+  const plan = stan.podglad;
+  if (!plan) return;
+  const byl = stan.wlasnePlany.some((p) => p.id === plan.id);
+  // Ten sam identyfikator zastępuje poprzednią wersję — poprawiony w edytorze
+  // plan nie mnoży kopii na liście.
+  stan.wlasnePlany = store.savePlan(plan);
+  renderPlans();
+  toast(byl ? 'Zaktualizowano plan: ' + plan.name : 'Dodano plan: ' + plan.name);
+  openPlan(plan.id);
+});
 
 $('btn-start').addEventListener('click', async () => {
   if (!stan.selectedPlan) return;

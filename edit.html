@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b0f14">
+<title>ZipRun — edytor planu</title>
+<link rel="icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body class="edytor">
+
+<header id="topbar">
+  <a class="brand" href="./">Zip<span>Run</span><em id="brand-ver">—</em></a>
+  <span class="ed-tytul">Edytor planu</span>
+</header>
+
+<main>
+  <label class="field">
+    <span>Nazwa planu</span>
+    <input id="ed-nazwa" type="text" maxlength="60" autocomplete="off">
+  </label>
+
+  <div class="card">
+    <div class="card-title">Odcinki</div>
+    <div id="ed-lista" class="ed-lista"></div>
+    <div class="btn-row">
+      <button id="ed-dodaj" class="ghost">+ Dodaj odcinek</button>
+      <button id="ed-grupuj" class="ghost" disabled>Grupuj zaznaczone</button>
+    </div>
+    <p class="hint">Rodzaj odcinka zmienia się kliknięciem. Czas: <b>90</b> to sekundy, <b>1:30</b> to minuty
+      i sekundy. Zaznacz co najmniej dwa sąsiednie odcinki, żeby połączyć je w grupę z powtórzeniami.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Podsumowanie</div>
+    <div id="ed-meta" class="meta-row"></div>
+    <div id="ed-chart" class="chart"></div>
+    <div class="legend">
+      <span><i class="sw warmup"></i>rozgrzewka</span>
+      <span><i class="sw work"></i>praca</span>
+      <span><i class="sw recovery"></i>przerwa</span>
+      <span><i class="sw cooldown"></i>schłodzenie</span>
+    </div>
+    <pre id="ed-linie" class="ed-linie mono"></pre>
+  </div>
+
+  <div id="ed-bledy" class="note hidden"></div>
+
+  <div class="btn-row">
+    <button id="ed-generuj" class="primary">Generuj</button>
+    <button id="ed-nowy" class="ghost">Nowy plan</button>
+  </div>
+  <p id="ed-status" class="hint" aria-live="polite"></p>
+  <input id="ed-link" class="input mono small hidden" readonly aria-label="Link do planu">
+</main>
+
+<script type="module" src="js/editor/app.js"></script>
+</body>
+</html>

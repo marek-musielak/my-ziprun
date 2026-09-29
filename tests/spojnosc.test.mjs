@@ -19,22 +19,36 @@ function grafModulow(start) {
     const plik = kolejka.pop();
     if (widziane.has(plik)) continue;
     widziane.add(plik);
-    for (const m of czytaj(plik).matchAll(/^\s*import\s+(?:[^'"]*?\s+from\s+)?['"](\.[^'"]+)['"]/gm)) {
+    // Także `export { … } from` — moduł przekazany dalej też musi być w pamięci.
+    for (const m of czytaj(plik).matchAll(/^\s*(?:import|export)\s+(?:[^'"]*?\s+from\s+)?['"](\.[^'"]+)['"]/gm)) {
       kolejka.push(path.posix.normalize(path.posix.join(path.posix.dirname(plik), m[1])));
     }
   }
   return widziane;
 }
 
+// Dwa punkty wejścia: aplikacja na telefonie i edytor planów na komputerze.
+const WEJSCIA = [
+  { js: 'js/app.js', html: 'index.html' },
+  { js: 'js/editor/app.js', html: 'edit.html' },
+];
+const wszystkieModuly = () => new Set(WEJSCIA.flatMap((w) => [...grafModulow(w.js)]));
+
 const assetsSw = () => {
   const blok = czytaj('sw.js').match(/const ASSETS = \[([\s\S]*?)\];/)[1];
   return [...blok.matchAll(/'([^']+)'/g)].map((m) => m[1]);
 };
 
-test('każdy moduł aplikacji jest w pamięci offline service workera', () => {
+test('każdy moduł aplikacji i edytora jest w pamięci offline service workera', () => {
   const assets = new Set(assetsSw());
-  const brak = [...grafModulow('js/app.js')].filter((m) => !assets.has(m));
+  const brak = [...wszystkieModuly(), ...WEJSCIA.map((w) => w.html)].filter((m) => !assets.has(m));
   assert.deepEqual(brak, [], 'dopisz do ASSETS w sw.js');
+});
+
+test('każda strona ładuje swój punkt wejścia', () => {
+  for (const w of WEJSCIA) {
+    assert.match(czytaj(w.html), new RegExp('<script type="module" src="' + w.js.replace(/\//g, '\\/') + '">'), w.html);
+  }
 });
 
 test('każdy plik z listy service workera istnieje', () => {
@@ -49,10 +63,13 @@ test('każda importowana nazwa jest eksportowana przez swój moduł', () => {
     const s = czytaj(plik);
     const out = new Set();
     for (const m of s.matchAll(/export\s+(?:async\s+)?(?:function\*?|const|let|class)\s+([\w$]+)/g)) out.add(m[1]);
+    for (const m of s.matchAll(/export\s*\{([^}]+)\}/g)) {
+      for (const n of m[1].split(',')) out.add(n.trim().split(/\s+as\s+/).pop());
+    }
     return out;
   };
   const problemy = [];
-  for (const plik of grafModulow('js/app.js')) {
+  for (const plik of wszystkieModuly()) {
     for (const m of czytaj(plik).matchAll(/import\s*\{([^}]+)\}\s*from\s*['"](\.[^'"]+)['"]/g)) {
       const zrodlo = path.posix.normalize(path.posix.join(path.posix.dirname(plik), m[2]));
       const ex = eksporty(zrodlo);
@@ -64,14 +81,15 @@ test('każda importowana nazwa jest eksportowana przez swój moduł', () => {
   assert.deepEqual(problemy, []);
 });
 
-test('każdy element, po który sięga interfejs, istnieje w index.html', () => {
+test('każdy element, po który sięga interfejs, istnieje w swojej stronie', () => {
   // Taka rozbieżność wysypała 1.7.x: kod szukał elementu, którego HTML nie miał.
-  const html = czytaj('index.html');
-  const idHtml = new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]));
   const brak = new Set();
-  for (const plik of grafModulow('js/app.js')) {
-    for (const m of czytaj(plik).matchAll(/\$\('([\w-]+)'\)/g)) {
-      if (!idHtml.has(m[1])) brak.add(plik + ': #' + m[1]);
+  for (const w of WEJSCIA) {
+    const idHtml = new Set([...czytaj(w.html).matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]));
+    for (const plik of grafModulow(w.js)) {
+      for (const m of czytaj(plik).matchAll(/\$\('([\w-]+)'\)/g)) {
+        if (!idHtml.has(m[1])) brak.add(w.html + ' ← ' + plik + ': #' + m[1]);
+      }
     }
   }
   assert.deepEqual([...brak], []);

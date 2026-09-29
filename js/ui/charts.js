@@ -2,6 +2,7 @@
 // szczegółów, kreatora, podsumowania i historii.
 
 import { fmtTime } from '../plans.js';
+import { esc } from '../tekst.js';
 
 export function listaSegmentow(segments) {
   return segments
@@ -10,7 +11,7 @@ export function listaSegmentow(segments) {
                 : s.wantedIncline > 0 ? ' · <s>' + s.wantedIncline + '%</s>'
                 : '';
       return '<div class="seg ' + s.kind + '"><i></i>' +
-      '<div class="nm">' + s.label + inc + '</div>' +
+      '<div class="nm">' + esc(s.label) + inc + '</div>' +
       '<div class="sp">' + s.speed.toFixed(1).replace('.', ',') + '</div>' +
       '<div class="tm">' + fmtTime(s.duration) + '</div></div>';
     })
@@ -25,7 +26,7 @@ export function chartHtml(segments, maxSpeed) {
       const h = Math.max(4, Math.round((s.speed / maxSpeed) * 100));
       const w = Math.max(0.4, (s.duration / total) * 100);
       return '<div class="bar ' + s.kind + '" style="height:' + h + '%;flex:0 0 ' + w + '%" ' +
-             'title="' + s.label + ' — ' + s.speed + ' km/h"></div>';
+             'title="' + esc(s.label) + ' — ' + s.speed + ' km/h"></div>';
     })
     .join('');
 }

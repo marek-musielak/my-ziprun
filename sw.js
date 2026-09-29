@@ -28,6 +28,12 @@ const ASSETS = [
   'js/version.js',
   'js/trace.js',
   'js/generator.js',
+  'js/tekst.js',
+  'js/editor/model.js',
+  'js/editor/link.js',
+  'js/editor/app.js',
+  'edit.html',
+  'js/ui/import.js',
   'js/ui/core.js',
   'js/ui/nav.js',
   'js/ui/charts.js',
@@ -73,9 +79,14 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   if (new URL(req.url).origin !== self.location.origin) return;
 
+  // Edytor ma ładny adres /edit, a w pamięci leży jako edit.html. Bez tego
+  // edytor szedłby z sieci, a jego moduły z pamięci — czyli z dwóch wydań.
+  const url = new URL(req.url);
+  const klucz = url.pathname.endsWith('/edit') ? new URL('edit.html', self.registration.scope).href : req;
+
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {
-      const zPamieci = await cache.match(req, { ignoreSearch: true });
+      const zPamieci = await cache.match(klucz, { ignoreSearch: true });
       if (zPamieci) return zPamieci;
 
       try {

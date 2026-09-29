@@ -14,8 +14,11 @@ export const DEFAULT_PROFILE = {
   walk: 5.0,       // spokojny marsz
   easy: 8.0,       // tempo, w którym możesz swobodnie rozmawiać
   fast: 11.0,      // tempo, które utrzymasz około 3 minuty
-  maxSpeedCap: 12, // twardy limit bezpieczeństwa
-  maxInclineCap: 0,
+  // Limity nie są ustawiane ręcznie — przy każdym połączeniu przyjmują zakres
+  // zgłoszony przez bieżnię (limityZBiezni niżej). Do pierwszego połączenia
+  // obowiązuje zakres bieżni FS-CA455B.
+  maxSpeedCap: 22,
+  maxInclineCap: 20,
   // Używane wyłącznie awaryjnie, gdy bieżnia nie raportuje kalorii. Nie ma
   // pola w interfejsie, bo prędkości od masy nie zależą, a bieżnie z FTMS
   // liczą kalorie same - formularz sugerowałby wpływ, którego nie ma.
@@ -47,6 +50,26 @@ export function anchorSpeed(anchor, p) {
   const v = map[anchor];
   if (v === undefined) throw new Error('Nieznana kotwica prędkości: ' + anchor);
   return Math.min(p.maxSpeedCap, Math.round(v * 10) / 10);
+}
+
+/**
+ * Limity profilu wynikające z możliwości bieżni. Działa w obie strony:
+ * aplikacja nie wyjdzie poza zakres bieżni, ale też nie tnie planu niżej.
+ *
+ * Bierzemy tylko zakres faktycznie odczytany z bieżni. Gdy odczyt się nie
+ * uda, sterownik podstawia własny domyślny zakres — to zgadywanie, więc nie
+ * może ani podnieść, ani obniżyć limitu. Bieżnia bez sterowanej pochylni
+ * dostaje limit nachylenia zero: plan nie może obiecywać podbiegu.
+ */
+export function limityZBiezni(caps) {
+  if (!caps?.speedRange) return {};
+  const out = {};
+  const v = caps.speedRange;
+  if (v.odczytany && v.max > 0 && v.max <= 40) out.maxSpeedCap = v.max;
+  const i = caps.inclineRange;
+  if (!caps.incline) out.maxInclineCap = 0;
+  else if (i?.odczytany && i.max >= 0 && i.max <= 40) out.maxInclineCap = i.max;
+  return out;
 }
 
 /** Zamienia definicję segmentu na konkretne km/h i procent nachylenia. */

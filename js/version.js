@@ -10,9 +10,31 @@
 // typu "to jeszcze nie jest wypchnięte, więc dopiszę do poprzedniej wersji" —
 // taki wyjątek raz już doprowadził do sześciu commitów pod jednym numerem.
 
-export const VERSION = '1.16.1';
+export const VERSION = '1.18.0';
 
 export const CHANGELOG = [
+  {
+    version: '1.18.0',
+    date: '2026-09-29',
+    title: 'Edytor planów na komputerze',
+    changes: [
+      'Nowa strona /edit: plan układasz z odcinków o zadanej prędkości, nachyleniu i czasie. Rodzaj odcinka zmienia się kliknięciem, a sąsiednie odcinki łączą się w grupę z liczbą powtórzeń.',
+      'Na bieżąco widać łączny czas, dystans, przewyższenie, wykres i listę odcinków z tempem na kilometr.',
+      '„Generuj” kopiuje link. Otwarty na telefonie pokazuje podgląd planu z przyciskiem „Dodaj do moich planów”, a poprawiony i wysłany jeszcze raz — „Zaktualizuj plan”, bez tworzenia kopii.',
+      'Link jest dokładnie sprawdzany, a nazwy planów, odcinków i urządzeń trafiają na ekran jako zwykły tekst — spreparowany link nie przemyci na stronę własnego kodu.',
+    ],
+  },
+  {
+    version: '1.17.0',
+    date: '2026-09-29',
+    title: 'Limity prosto z bieżni',
+    changes: [
+      'Limit prędkości i nachylenia nie jest już ustawiany suwakiem w Profilu. Przy każdym połączeniu przyjmuje zakres, który zgłasza bieżnia — FS-CA455B to 22 km/h i 20% nachylenia.',
+      'Wcześniej limit dało się po połączeniu tylko obniżyć, nigdy podnieść. Profil zostawał przy 12 km/h i zerowym nachyleniu z poprzedniej bieżni, więc każdy podbieg w planie biegł płasko.',
+      'Przy zerowym nachyleniu suwak nachylenia chował się po połączeniu i nie było jak tego zmienić. Suwaków nie ma — w ich miejscu Profil pokazuje odczytany zakres.',
+      'Gdy bieżnia nie poda zakresu, limity zostają takie, jakie były. Domyślny zakres sterownika to zgadywanie i nie przestawia profilu.',
+    ],
+  },
   {
     version: '1.16.1',
     date: '2026-09-29',

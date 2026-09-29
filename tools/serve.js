@@ -23,6 +23,8 @@ http.createServer((req, res) => {
   let file = path.join(root, url === '/' ? 'index.html' : url);
   // Nie wypuszczamy niczego poza katalog projektu.
   if (!file.startsWith(root)) { res.writeHead(403).end('Forbidden'); return; }
+  // Tak jak GitHub Pages: /edit podaje edit.html.
+  if (!path.extname(file) && fs.existsSync(file + '.html')) file += '.html';
   fs.readFile(file, (err, data) => {
     if (err) { res.writeHead(404, { 'content-type': 'text/plain' }).end('404'); return; }
     res.writeHead(200, {

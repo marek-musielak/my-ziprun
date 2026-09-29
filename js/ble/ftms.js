@@ -156,6 +156,9 @@ export class FtmsDriver {
           min: dv.getUint16(0, true) / 100,
           max: dv.getUint16(2, true) / 100,
           step: Math.max(0.1, dv.getUint16(4, true) / 100),
+          // Odróżnia zakres z bieżni od domyślnego z konstruktora — tylko
+          // odczytany może stać się limitem w profilu.
+          odczytany: true,
         };
         this.log('Zakres predkosci: ' + JSON.stringify(this.speedRange));
       } catch (e) { this.log('Brak odczytu zakresu predkosci: ' + e.message); }
@@ -169,6 +172,7 @@ export class FtmsDriver {
           min: dv.getInt16(0, true) / 10,
           max: dv.getInt16(2, true) / 10,
           step: Math.max(0.1, dv.getUint16(4, true) / 10),
+          odczytany: true,
         };
         this.log('Zakres nachylenia: ' + JSON.stringify(this.inclineRange));
       } catch (e) { this.log('Brak odczytu zakresu nachylenia: ' + e.message); }

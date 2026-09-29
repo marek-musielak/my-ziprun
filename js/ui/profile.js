@@ -14,8 +14,13 @@ export function renderProfile() {
   set('p-easy', profile.easy); $('p-easy-v').textContent = profile.easy.toFixed(1).replace('.', ',') + ' km/h';
   set('p-fast', profile.fast); $('p-fast-v').textContent = profile.fast.toFixed(1).replace('.', ',') + ' km/h';
   set('p-walk', profile.walk); $('p-walk-v').textContent = profile.walk.toFixed(1).replace('.', ',') + ' km/h';
-  set('p-cap', profile.maxSpeedCap); $('p-cap-v').textContent = profile.maxSpeedCap.toFixed(1).replace('.', ',') + ' km/h';
-  set('p-inc', profile.maxInclineCap); $('p-inc-v').textContent = profile.maxInclineCap + ' %';
+  // Zakres tylko do odczytu: ustala go bieżnia przy połączeniu, a nie suwak.
+  $('p-limits').innerHTML =
+    'Prędkość: <b>do ' + profile.maxSpeedCap.toFixed(1).replace('.', ',') + ' km/h</b><br>' +
+    'Nachylenie: <b>' + (profile.maxInclineCap > 0 ? 'do ' + profile.maxInclineCap + ' %' : 'brak pochylni') + '</b>';
+  $('p-limits-src').textContent = profile.zakresZ
+    ? 'Odczytany z bieżni ' + profile.zakresZ + '. Ani plan, ani korekta nie wyjdą poza ten zakres.'
+    : 'Zakres nie był jeszcze odczytany z bieżni — ustawi się sam przy najbliższym połączeniu.';
   $('s-compact').checked = settings.compact;
   $('s-voice').checked = settings.voice;
   $('s-auto').checked = settings.autoControl;
@@ -53,8 +58,6 @@ function bindRange(id, key, fmt, isInt = false) {
 bindRange('p-easy', 'easy');
 bindRange('p-fast', 'fast');
 bindRange('p-walk', 'walk');
-bindRange('p-cap', 'maxSpeedCap');
-bindRange('p-inc', 'maxInclineCap', null, true);
 
 const bindSwitch = (id, key, after) => $(id).addEventListener('change', (e) => {
   stan.settings[key] = e.target.checked;

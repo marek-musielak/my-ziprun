@@ -29,6 +29,7 @@ export const stan = {
   profile: store.loadProfile(),
   settings: store.loadSettings(),
   selectedPlan: null,
+  podglad: null,          // plan z linku, oglądany przed dodaniem
   wlasnePlany: store.loadPlans(),
   ulubione: store.loadFavourites(),
   lastSummary: null,
@@ -61,13 +62,7 @@ export function toast(msg, isError = false) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 3800);
 }
 
-/** Polska odmiana: 1 trening, 2-4 treningi, 5+ treningów. */
-export function plural(n, one, few, many) {
-  const m10 = n % 10, m100 = n % 100;
-  if (n === 1) return one;
-  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
-  return many;
-}
+export { plural, esc } from '../tekst.js';
 
 /** Podaje tekst do zapisania jako plik. */
 export function downloadText(filename, text) {

@@ -642,3 +642,66 @@ button { font-family: inherit; cursor: pointer; }
   #view-run.odliczanie.compact .segtime { font-size: 72px; }
   #view-run.odliczanie .ring-sub { font-size: 12px; }
 }
+
+/* ---------- edytor planu (edit.html) ---------- */
+/* Edytor żyje na komputerze: szersza kolumna i bez dolnego paska zakładek.
+   Na wąskim ekranie wiersz odcinka zawija się pod spodem. */
+body.edytor { padding-bottom: 40px; }
+body.edytor main { max-width: 880px; margin: 0 auto; }
+a.brand { text-decoration: none; }
+.ed-tytul { color: var(--dim); font-size: 14px; margin-left: 4px; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+
+.ed-lista { display: grid; gap: 6px; margin-bottom: 4px; }
+.ed-odc {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 10px; background: var(--bg2);
+  border-left: 4px solid var(--work);
+}
+.ed-odc.warmup { border-left-color: var(--warmup); }
+.ed-odc.recovery { border-left-color: var(--recovery); }
+.ed-odc.cooldown { border-left-color: var(--cooldown); }
+.ed-zazn { width: 18px; height: 18px; flex: 0 0 18px; margin: 0; accent-color: var(--accent); }
+
+/* Przycisk rodzaju ma kolor rodzaju — ten sam, co pasek wykresu. */
+.ed-rodzaj {
+  min-width: 116px; padding: 8px 12px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--card);
+  font-weight: 700; font-size: 13px; color: var(--work);
+}
+.ed-odc.warmup .ed-rodzaj { color: var(--warmup); }
+.ed-odc.recovery .ed-rodzaj { color: var(--recovery); }
+.ed-odc.cooldown .ed-rodzaj { color: var(--cooldown); }
+
+.ed-pole { display: flex; align-items: center; gap: 6px; }
+.ed-pole .input {
+  width: 68px; padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums;
+}
+.ed-t .input { width: 80px; }
+.ed-jedn { color: var(--dim); font-size: 12px; min-width: 30px; }
+.ed-t .ed-jedn { min-width: 82px; }
+
+.ed-ikona {
+  padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line);
+  background: transparent; color: var(--dim); font-size: 12px;
+}
+.ed-ikona:hover { color: var(--fg); border-color: var(--dim); }
+.ed-dup { margin-left: auto; }
+
+.input.zle, .field input.zle { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad); }
+
+.ed-grupa {
+  display: grid; gap: 6px; padding: 8px;
+  border: 1px dashed var(--accent2); border-radius: 12px;
+}
+.ed-grupa-nag { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; }
+.ed-grupa-nag .input { width: 60px; padding: 6px 8px; text-align: right; }
+.ed-grupa-opis { color: var(--dim); font-weight: 400; font-size: 13px; }
+.ed-grupa-nag .ed-ikona { margin-left: auto; }
+
+.ed-linie {
+  margin: 10px 0 0; font-size: 13px; line-height: 1.6; white-space: pre;
+  overflow: auto; max-height: 380px;
+}
+#ed-link { margin-top: 8px; }
+.ed-blad { color: var(--bad); }

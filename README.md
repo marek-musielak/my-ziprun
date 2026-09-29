@@ -65,7 +65,8 @@ i od razu dają adres HTTPS. Bez repozytorium i bez publikowania kodu źródłow
 1. **Profil.** Ustaw dwie prędkości: *swobodną* (taką, przy której możesz
    rozmawiać) i *szybką* (utrzymasz ją około trzech minut). Wszystkie plany
    liczą się z tych dwóch liczb, więc zawyżone wartości dadzą plan nie do
-   wykonania. Sprawdź też limity bezpieczeństwa.
+   wykonania. Limity prędkości i nachylenia ustawią się same po połączeniu
+   bieżni.
 
    Wiek ani masa ciała nie są potrzebne — prędkości od nich nie zależą.
    Masa służy tylko awaryjnemu szacowaniu kalorii, gdy bieżnia nie podaje ich
@@ -112,8 +113,10 @@ stopami. Zabezpieczenia w kodzie:
 - **Zapowiedź wyprzedzająca** — zmiana jest ogłaszana głosem zanim nastąpi,
   a rozpędzanie zaczyna się przed końcem poprzedniego odcinka, żeby na starcie
   interwału pas był już na docelowej prędkości.
-- **Twardy limit prędkości i nachylenia** w profilu, dodatkowo ograniczany do
-  tego, co bieżnia sama zgłasza jako swój zakres.
+- **Limit prędkości i nachylenia z bieżni** — przy każdym połączeniu profil
+  przyjmuje zakres, który bieżnia zgłasza w standardzie FTMS. Plan ani korekta
+  nie wyjdą poza niego. Zakres domyślny sterownika, gdy odczyt się nie uda,
+  nie zmienia limitów.
 - **Reakcja na kluczyk bezpieczeństwa** — wyjęcie kluczyka przerywa trening.
 - **Brak komend po zatrzymaniu** — żadna zakolejkowana komenda prędkości nie
   dotrze do bieżni po pauzie ani po stopie.
@@ -171,6 +174,12 @@ korekta ±0,5 km/h w trakcie treningu działa na nim normalnie.
 ```
 index.html            interfejs (widoki jako sekcje)
 app.css               ciemny motyw, duża typografia do czytania w ruchu
+edit.html             edytor planów (adres /edit)
+js/editor/model.js    model edytora: odcinki, grupy, walidacja, podsumowanie
+js/editor/link.js     plan w linku: zapis i ścisły odczyt
+js/editor/app.js      ekran edytora
+js/tekst.js           esc() i odmiana liczebników — wspólne dla obu stron
+js/ui/import.js       podgląd planu z linku na telefonie
 js/app.js             punkt wejścia: import widoków, start aplikacji
 js/ui/core.js         wspólny stan, bieżnia, silnik, rejestrator, drobne narzędzia
 js/ui/nav.js          przełączanie widoków i gest wstecz
@@ -221,6 +230,7 @@ komendy. Cały zestaw trwa około sekundy.
 | `ftms.test.mjs` | parsowanie ramek Treadmill Data i Feature, w tym odwrócony bit „More Data" |
 | `trace.test.mjs` | zapis techniczny: throttling pomiarów, hamowanie po treningu, raport i jego odtworzenie z pamięci |
 | `charts.test.mjs` | uśrednianie przebiegu i proporcje wykresu |
+| `editor.test.mjs` | pola edytora, grupy i powtórzenia, numeracja „Praca N", przewyższenie, format listy; link w obie strony i odrzucanie spreparowanych linków |
 | `spojnosc.test.mjs` | każdy moduł jest na liście service workera, każdy `$('id')` ma element w `index.html`, każdy import ma swój eksport, wersja ma wpis w historii zmian |
 
 Ostatni plik łapie dokładnie tę klasę błędów, która w 1.7.x wysypała
@@ -262,6 +272,36 @@ Plany leżą w localStorage (maksymalnie 50), wchodzą do kopii danych i wracaj�
 z importu; scalane są po identyfikatorze, więc ponowny import nic nie duplikuje.
 Na liście mają odznakę „mój" i własny filtr; usunąć można tylko własny plan,
 bo wbudowanego nie dałoby się odtworzyć.
+
+## Edytor planów na komputerze
+
+Pod adresem [`/edit`](https://marek-musielak.github.io/my-ziprun/edit) plan
+układa się z odcinków o zadanej prędkości (1–22 km/h), nachyleniu (0–20 %)
+i czasie. Czas wpisuje się jako sekundy (`90`) albo minuty i sekundy (`1:30`).
+Rodzaj odcinka zmienia się kliknięciem: praca → przerwa → schłodzenie →
+rozgrzewka. Sąsiednie odcinki łączą się w grupę z liczbą powtórzeń 1–50.
+
+Na bieżąco widać łączny czas, dystans, przewyższenie i wykres, a pod nim listę
+odcinków w postaci `04m00s [6:00] /4%` — czas, tempo na kilometr i nachylenie
+w terenie. Przewyższenie liczone jest z połowy nachylenia bieżni: pas nie daje
+tego, co prawdziwe zbocze, więc 10 km na 20 % to 1 km w górę.
+
+„Generuj" kopiuje link `…/my-ziprun/#plan=…`. Otwarty w Chrome na telefonie
+pokazuje podgląd planu z przyciskiem „Dodaj do moich planów". Edytor pamięta
+ostatni plan razem z jego identyfikatorem, więc poprawiony i wysłany jeszcze
+raz plan pokazuje „Zaktualizuj plan" i zastępuje poprzednią wersję zamiast
+dokładać kopię. „Nowy plan" zaczyna od zera.
+
+Plan jedzie po `#`, bo ta część adresu nie wychodzi z przeglądarki — nie trafia
+na serwer. Telefon sprawdza link w całości i sam nadaje nazwy odcinków
+(„Praca 1", „Przerwa"…), a nazwy planów i urządzeń wyświetla jako zwykły tekst,
+więc spreparowany link nie przemyci na stronę własnego kodu.
+
+Prędkości są wpisane liczbą, jak w planie z FitShow — plan z edytora nie
+skaluje się z profilem.
+
+Link otwieraj w Chrome, nie we wbudowanej przeglądarce komunikatora: ta ma
+osobną pamięć, więc plan dodany tam nie pojawiłby się w aplikacji.
 
 ## Co widać bez czytania
 

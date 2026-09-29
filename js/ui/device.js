@@ -2,10 +2,11 @@
 // test sterowania i ręczne ramki.
 
 import { STATE } from '../engine.js';
+import { limityZBiezni } from '../plans.js';
 import { parseHex, KNOWN_NAMES } from '../ble/uuids.js';
 import { VERSION } from '../version.js';
 import * as store from '../storage.js';
-import { $, els, tm, engine, stan, toast, downloadText, stamp } from './core.js';
+import { $, els, tm, engine, stan, toast, esc, downloadText, stamp } from './core.js';
 import { goto } from './nav.js';
 import { renderPlans, odswiezOstrzezenia } from './plan-list.js';
 import { updateInclineUi } from './run.js';
@@ -24,8 +25,9 @@ tm.on('state', (e) => {
   dot.className = 'dot' + (e.state === 'connected' ? ' on' : e.state === 'connecting' ? ' wait' : '');
   if (e.state === 'connected') {
     $('btn-connect').textContent = tm.device?.name || 'Połączona';
-    $('dev-status').innerHTML = 'Połączono z <b>' + (tm.device?.name || 'urządzeniem') + '</b><br>' +
-      'Protokół: <b>' + e.driver + '</b>';
+    // Nazwę rozgłasza samo urządzenie Bluetooth — może to być cokolwiek.
+    $('dev-status').innerHTML = 'Połączono z <b>' + esc(tm.device?.name || 'urządzeniem') + '</b><br>' +
+      'Protokół: <b>' + esc(e.driver) + '</b>';
     renderCaps(e.caps);
     stan.settings.lastDeviceName = tm.device?.name || '';
     store.saveSettings(stan.settings);
@@ -55,13 +57,13 @@ function renderCaps(caps) {
       ? '<br><span style="color:var(--warn)">Protokół własnościowy — komendy sterujące nie są jeszcze potwierdzone. ' +
         'Uruchom diagnostykę i test sterowania.</span>'
       : '');
-  // Limit z profilu nie powinien przekraczać tego, co bieżnia w ogóle potrafi.
-  if (caps.speedRange.max && profile.maxSpeedCap > caps.speedRange.max) {
-    profile.maxSpeedCap = caps.speedRange.max;
-    store.saveProfile(profile);
-  }
-  if (caps.inclineRange.max != null && profile.maxInclineCap > caps.inclineRange.max) {
-    profile.maxInclineCap = caps.inclineRange.max;
+  // Limity profilu to zakres bieżni — w obie strony, bez ręcznych ustawień.
+  // Zapamiętujemy je, żeby trening w trybie prowadzenia, bez połączenia,
+  // liczył plan z tym samym zakresem.
+  const limity = limityZBiezni(caps);
+  if ('maxSpeedCap' in limity) limity.zakresZ = tm.device?.name || 'bieżnia';
+  if (Object.entries(limity).some(([k, v]) => profile[k] !== v)) {
+    Object.assign(profile, limity);
     store.saveProfile(profile);
   }
   updateInclineUi();

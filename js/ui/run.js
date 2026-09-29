@@ -4,7 +4,7 @@
 import { KIND_LABEL, fmtTime } from '../plans.js';
 import { STATE } from '../engine.js';
 import * as store from '../storage.js';
-import { $, el, tm, speech, keeper, engine, trace, stan, opisWyniku, toast } from './core.js';
+import { $, el, tm, speech, keeper, engine, trace, stan, opisWyniku, toast, esc } from './core.js';
 import { showSummary } from './summary.js';
 
 // Ile sekund przed zmianą prędkości środek pierścienia przechodzi
@@ -96,7 +96,6 @@ export function updateInclineUi() {
   $('c-inc-up').classList.toggle('hidden', !has);
   $('c-inc-down').classList.toggle('hidden', !has);
   el('.controls').classList.toggle('no-incline', !has);
-  $('p-inc').closest('.field').classList.toggle('hidden', !has && tm.connected);
 }
 
 function paceStr(kmh) {
@@ -202,7 +201,7 @@ engine.on('tick', (d) => {
   // co będzie dalej. Wcześniej w trakcie rampy zmieniało się w komunikat
   // „Rozpędzam do…", czyli dublowało informację małym drukiem.
   $('run-next').innerHTML = nadchodzi
-    ? 'Dalej: <b>' + nadchodzi.label + '</b> · ' +
+    ? 'Dalej: <b>' + esc(nadchodzi.label) + '</b> · ' +
       engine.targetSpeedFor(nadchodzi).toFixed(1).replace('.', ',') +
       ' km/h · ' + fmtTime(nadchodzi.duration)
     : 'Ostatni odcinek';
