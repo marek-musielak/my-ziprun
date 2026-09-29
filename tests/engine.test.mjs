@@ -3,7 +3,7 @@
 import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { instalujZegar, SztucznaBieznia, dokonczObietnice } from './helpers.mjs';
-import { WorkoutEngine, STATE, rampSeconds } from '../js/engine.js';
+import { WorkoutEngine, STATE, rampSeconds, SCHLODZENIE } from '../js/engine.js';
 import { DEFAULT_PROFILE } from '../js/plans.js';
 
 const PLAN = {
@@ -22,8 +22,8 @@ let zegar, tm, engine;
  * Start bez odliczania i bez prawdziwego interwału — takty podaje test.
  * Pas „już jedzie" (metrics.speed), więc silnik nie czeka na jego ruszenie.
  */
-async function uruchom({ auto = true, followManual = true, plan = PLAN } = {}) {
-  tm = new SztucznaBieznia({ speed: auto });
+async function uruchom({ auto = true, followManual = true, plan = PLAN, incline = false } = {}) {
+  tm = new SztucznaBieznia({ speed: auto, incline });
   tm.metrics = { speed: 5 };
   engine = new WorkoutEngine(tm, null);
   engine.load(plan, { ...DEFAULT_PROFILE });
@@ -290,5 +290,140 @@ describe('podążanie za panelem bieżni', () => {
     tm.metrics.speed = 6.5; // wartość przelotowa w trakcie rozpędzania
     przewin(3.5);
     assert.equal(engine.speedFactor, 1);
+  });
+});
+
+describe('przewyższenie', () => {
+  test('10 km na 20 % bieżni to 1 km w górę', async () => {
+    const plan = { id: 'x', name: 'Podbieg', segments: [{ t: 3600, s: 10, i: 20, kind: 'work', label: 'Pod górę' }] };
+    await uruchom({ auto: false, plan });
+    tm.metrics = { speed: 10 };
+    const koniec = [];
+    engine.on('ended', (s) => koniec.push(s));
+    przewin(3601);
+    assert.equal(koniec[0].przewyzszenieM, 1000);
+  });
+
+  test('liczone z nachylenia zgłoszonego przez bieżnię, nie z planu', async () => {
+    await uruchom({ auto: false });
+    tm.metrics = { speed: 7.2, incline: 10 }; // 2 m/s na 10 % → 0,1 m w górę na sekundę
+    przewin(10);
+    assert.ok(Math.abs(engine.przewyzszenieM - 1) < 1e-9, String(engine.przewyzszenieM));
+  });
+
+  test('po płaskim zero', async () => {
+    await uruchom({ auto: false });
+    przewin(61);
+    assert.equal(engine.summary().przewyzszenieM, 0);
+  });
+});
+
+describe('schłodzenie po planie z edytora', () => {
+  const Z_EDYTORA = { ...PLAN, zEdytora: true };
+
+  async function doSchlodzenia(opcje = {}) {
+    await uruchom({ plan: Z_EDYTORA, followManual: false, ...opcje });
+    const zdarzenia = { wynik: [], ended: [] };
+    engine.on('wynik', (s) => zdarzenia.wynik.push(s));
+    engine.on('ended', (s) => zdarzenia.ended.push(s));
+    przewin(60.25);
+    await dokonczObietnice();
+    return zdarzenia;
+  }
+
+  test('plan wbudowany kończy się bez schłodzenia', async () => {
+    await uruchom({ auto: false });
+    przewin(61);
+    assert.equal(engine.state, STATE.FINISHED);
+  });
+
+  test('po ostatnim odcinku wynik jest gotowy, a pas przechodzi na 4 km/h', async () => {
+    const z = await doSchlodzenia();
+    assert.equal(engine.state, STATE.COOLDOWN);
+    assert.equal(z.wynik.length, 1, 'wynik zapisuje się od razu');
+    assert.equal(z.ended.length, 0, 'podsumowanie dopiero po schłodzeniu');
+    assert.equal(z.wynik[0].completed, true);
+    assert.equal(z.wynik[0].durationS, 60);
+    assert.equal(z.wynik[0].segmentsDone, 3);
+    assert.equal(tm.rampy.at(-1), 4);
+  });
+
+  test('schłodzenie nie wlicza się do wyniku', async () => {
+    const z = await doSchlodzenia();
+    const przed = JSON.stringify(z.wynik[0]);
+    tm.metrics = { speed: 4, distance: 5000 };
+    przewin(SCHLODZENIE.t + 1);
+    await dokonczObietnice();
+    assert.equal(engine.state, STATE.FINISHED);
+    assert.equal(z.ended.length, 1);
+    assert.equal(z.ended[0], z.wynik[0], 'ten sam wynik, nie nowy');
+    assert.equal(JSON.stringify(z.ended[0]), przed, 'wynik nie zmienił się w trakcie schłodzenia');
+    assert.ok(tm.komendy.some((k) => k[0] === 'stopBelt'));
+  });
+
+  test('trwa dokładnie 15 minut', async () => {
+    const z = await doSchlodzenia();
+    przewin(SCHLODZENIE.t - 1);
+    assert.equal(engine.state, STATE.COOLDOWN);
+    przewin(1.25);
+    await dokonczObietnice();
+    assert.equal(z.ended.length, 1);
+  });
+
+  test('dokładnie 4 km/h i 0 % — bez skali z panelu i bez korekt', async () => {
+    await uruchom({ plan: Z_EDYTORA, followManual: false, incline: true });
+    engine.speedFactor = 1.5;
+    engine.speedOffset = 2;
+    engine.inclineOffset = 5;
+    przewin(60.25);
+    await dokonczObietnice();
+    assert.equal(tm.rampy.at(-1), 4);
+    assert.deepEqual(tm.komendy.filter((k) => k[0] === 'setIncline').at(-1), ['setIncline', 0]);
+  });
+
+  test('korekty i panel bieżni w trakcie schłodzenia nie wysyłają komend', async () => {
+    await doSchlodzenia({ followManual: true });
+    const przed = tm.rampy.length;
+    engine.adjustSpeed(+0.5);
+    tm.metrics = { speed: 6 };
+    przewin(10);
+    await dokonczObietnice();
+    assert.equal(tm.rampy.length, przed);
+    assert.equal(engine.speedFactor, 1);
+  });
+
+  test('„Zakończ trening" kończy schłodzenie, trening zostaje ukończony', async () => {
+    const z = await doSchlodzenia();
+    przewin(30);
+    await engine.abort('Trening zatrzymany.');
+    assert.equal(engine.state, STATE.FINISHED);
+    assert.equal(z.ended.length, 1);
+    assert.equal(z.ended[0].completed, true);
+    assert.equal(z.ended[0].durationS, 60);
+  });
+
+  test('zatrzymanie pasa z konsoli kończy schłodzenie zamiast pauzy', async () => {
+    const z = await doSchlodzenia();
+    tm.emit('status', { opcode: 0x02 });
+    await dokonczObietnice();
+    assert.equal(engine.state, STATE.FINISHED);
+    assert.equal(z.ended.length, 1);
+  });
+
+  test('ekran dostaje odliczanie schłodzenia i zamrożony wynik', async () => {
+    await doSchlodzenia();
+    const takty = [];
+    engine.on('tick', (d) => takty.push(d));
+    przewin(60);
+    const d = takty.at(-1);
+    assert.ok(Math.abs(d.schlodzenie.pozostalo - (SCHLODZENIE.t - 60)) < 0.3);
+    assert.equal(d.wynik.durationS, 60);
+  });
+
+  test('przerwanie w trakcie treningu nie uruchamia schłodzenia', async () => {
+    await uruchom({ plan: Z_EDYTORA });
+    przewin(10);
+    await engine.abort();
+    assert.equal(engine.state, STATE.ABORTED);
   });
 });

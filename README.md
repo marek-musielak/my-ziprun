@@ -276,8 +276,9 @@ bo wbudowanego nie dałoby się odtworzyć.
 ## Edytor planów na komputerze
 
 Pod adresem [`/edit`](https://marek-musielak.github.io/my-ziprun/edit) plan
-układa się z odcinków o zadanej prędkości (1–22 km/h), nachyleniu (0–20 %)
-i czasie. Czas wpisuje się jako sekundy (`90`) albo minuty i sekundy (`1:30`).
+układa się z odcinków o zadanym czasie, prędkości (1–22 km/h) i nachyleniu
+(0–20 %, puste pole to 0 %). Czas wpisuje się jako sekundy (`90`) albo minuty
+i sekundy (`1:30`).
 Rodzaj odcinka zmienia się kliknięciem: praca → przerwa → schłodzenie →
 rozgrzewka. Sąsiednie odcinki łączą się w grupę z liczbą powtórzeń 1–50.
 
@@ -299,6 +300,22 @@ więc spreparowany link nie przemyci na stronę własnego kodu.
 
 Prędkości są wpisane liczbą, jak w planie z FitShow — plan z edytora nie
 skaluje się z profilem.
+
+### Obowiązkowe schłodzenie
+
+Po ostatnim odcinku planu z edytora pas przechodzi na **15 minut marszu:
+dokładnie 4 km/h i 0 %**, bez skali z panelu i bez korekt. Edytor ani
+szczegóły planu tego nie pokazują — to nie jest odcinek planu.
+
+Schłodzenie nie wlicza się do wyniku. Trening trafia do historii jako
+ukończony już w chwili przejścia, a ekran odlicza samo schłodzenie, z wynikiem
+zamrożonym w wierszu pod prędkością („3,09 km · 530 m up · czas 21:00").
+Podsumowanie pojawia się po kwadransie albo wcześniej — po „Zakończ trening"
+lub zatrzymaniu pasa z konsoli; wynik jest w obu przypadkach ten sam.
+
+Przewyższenie w wynikach (podsumowanie, historia, zestawienie) liczy się
+z tego, co pas faktycznie zrobił: przyrost dystansu razy połowa nachylenia
+zgłoszonego przez bieżnię.
 
 Link otwieraj w Chrome, nie we wbudowanej przeglądarce komunikatora: ta ma
 osobną pamięć, więc plan dodany tam nie pojawiłby się w aplikacji.

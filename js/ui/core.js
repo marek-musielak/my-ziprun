@@ -46,11 +46,23 @@ export const znajdzPlan = (id) => stan.wlasnePlany.find((p) => p.id === id) || p
 /** Jedno zdanie o wyniku treningu — trafia do nagłówka zapisu technicznego. */
 export const opisWyniku = (sum) => !sum ? '-' :
   fmtTime(sum.durationS) + ', ' + sum.distanceKm.toFixed(2) + ' km' +
+  (sum.przewyzszenieM > 0 ? ', ' + sum.przewyzszenieM + ' m w górę' : '') +
   (sum.completed ? ', ukończony' : ', przerwany');
 
-/** Czy trening trwa — wliczając pauzę i odliczanie przed startem. */
+/**
+ * Wynik w kawałkach: „3,09 km", „530 m up", „czas 21:00". Przewyższenie
+ * tylko wtedy, gdy trening szedł pod górę — przy płaskim „0 m up" to szum.
+ */
+export const czesciWyniku = (sum) => [
+  sum.distanceKm.toFixed(2).replace('.', ',') + ' km',
+  ...(sum.przewyzszenieM > 0 ? [sum.przewyzszenieM + ' m up'] : []),
+  'czas ' + fmtTime(sum.durationS),
+];
+
+/** Czy trening trwa — wliczając pauzę, odliczanie przed startem i schłodzenie. */
 export const treningTrwa = () =>
-  engine.state === STATE.RUNNING || engine.state === STATE.PAUSED || engine.state === STATE.COUNTDOWN;
+  engine.state === STATE.RUNNING || engine.state === STATE.PAUSED ||
+  engine.state === STATE.COUNTDOWN || engine.state === STATE.COOLDOWN;
 
 let toastTimer;
 export function toast(msg, isError = false) {

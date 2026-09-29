@@ -140,6 +140,16 @@ describe('historia', () => {
     assert.equal(st.totalSec, 3600);
     assert.equal(st.weekCount, 1);
     assert.equal(st.weekKm, 3);
+    assert.equal(st.totalUpM, 0, 'stare treningi nie mają przewyższenia');
+  });
+
+  test('statystyki sumują przewyższenie', () => {
+    const st = store.historyStats([
+      trening('2026-09-01T10:00:00.000Z', { przewyzszenieM: 530 }),
+      trening('2026-09-02T10:00:00.000Z', { przewyzszenieM: 120 }),
+      trening('2026-09-03T10:00:00.000Z'),
+    ]);
+    assert.equal(st.totalUpM, 650);
   });
 });
 

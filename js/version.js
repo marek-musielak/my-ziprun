@@ -10,9 +10,30 @@
 // typu "to jeszcze nie jest wypchnięte, więc dopiszę do poprzedniej wersji" —
 // taki wyjątek raz już doprowadził do sześciu commitów pod jednym numerem.
 
-export const VERSION = '1.18.0';
+export const VERSION = '1.19.0';
 
 export const CHANGELOG = [
+  {
+    version: '1.19.0',
+    date: '2026-09-29',
+    title: 'Schłodzenie po planach z edytora i metry w górę',
+    changes: [
+      'Po ostatnim odcinku planu z edytora pas przechodzi na 15 minut spokojnego marszu: dokładnie 4 km/h i 0 %, bez skali z panelu i bez korekt.',
+      'Schłodzenie nie wlicza się do wyniku. Trening jest zapisywany jako ukończony już w chwili przejścia, a ekran odlicza samo schłodzenie i pokazuje wynik: dystans, metry w górę i czas.',
+      '„Zakończ trening” albo zatrzymanie pasa z konsoli w trakcie schłodzenia kończy je od razu i pokazuje podsumowanie — wynik zostaje bez zmian.',
+      'Przewyższenie liczone z faktycznego przebiegu: przebyty dystans razy połowa nachylenia bieżni. Widać je w podsumowaniu, w historii przy każdym treningu i łącznie w zestawieniu.',
+      'Kalorie zniknęły z podsumowania i ze szczegółów w historii.',
+    ],
+  },
+  {
+    version: '1.18.1',
+    date: '2026-09-29',
+    title: 'Edytor: czas na początku, puste nachylenie to zero',
+    changes: [
+      'W wierszu odcinka czas stoi teraz przed prędkością: rodzaj, czas, prędkość, nachylenie.',
+      'Puste pole nachylenia liczy się jako 0 % zamiast błędu — bieg po płaskim nie wymaga już wpisywania zera w każdym odcinku.',
+    ],
+  },
   {
     version: '1.18.0',
     date: '2026-09-29',

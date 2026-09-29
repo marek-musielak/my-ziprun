@@ -59,7 +59,7 @@ sprawdzLinkPlanu();
 
 // Ostrzeżenie przed zamknięciem karty w trakcie treningu — pas by dalej chodził.
 window.addEventListener('beforeunload', (e) => {
-  if (engine.state === STATE.RUNNING) { e.preventDefault(); e.returnValue = ''; }
+  if (engine.state === STATE.RUNNING || engine.state === STATE.COOLDOWN) { e.preventDefault(); e.returnValue = ''; }
 });
 
 if ('serviceWorker' in navigator) {

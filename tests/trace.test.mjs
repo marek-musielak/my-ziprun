@@ -73,6 +73,14 @@ describe('Trace', () => {
     assert.equal(trace.metrics.at(-1).speed, 3.2);
   });
 
+  test('w schłodzeniu pomiary idą z taktów silnika, bez dublowania ze strumienia bieżni', () => {
+    silnik.state = STATE.COOLDOWN;
+    tm.emit('data', { speed: 4 });
+    assert.equal(trace.metrics.length, 0);
+    silnik.emit('tick', takt({ segment: { label: 'Schłodzenie po treningu', speed: 4 }, metrics: { speed: 4 } }));
+    assert.equal(trace.metrics.at(-1).segment, 'Schłodzenie po treningu');
+  });
+
   test('odcinek w logu pokazuje prędkość zamówioną, a plan w nawiasie', () => {
     silnik.speedFactor = 1.2;
     silnik.emit('segment', { index: 1, segment: { label: 'Bieg', speed: 8, duration: 60 } });

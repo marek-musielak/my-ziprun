@@ -9,13 +9,14 @@ import { downsample } from './charts.js';
 export function showSummary(s) {
   $('sum-title').textContent = s.completed ? 'Trening ukończony' : 'Trening przerwany';
   $('sum-plan').textContent = s.planName + ' · ' + new Date(s.date).toLocaleString('pl-PL');
+  // Przewyższenie tylko po treningu pod górę — na płaskim „0 m up" nic nie mówi.
   $('sum-tiles').innerHTML = [
-    ['tv', fmtTime(s.durationS), 'czas'],
-    ['tv', s.distanceKm.toFixed(2).replace('.', ','), 'km'],
-    ['tv', String(s.kcal), 'kcal'],
-    ['tv', s.avgSpeed.toFixed(1).replace('.', ','), 'średnia km/h'],
-    ...(s.avgHr ? [['tv', String(s.avgHr), 'średni puls'], ['tv', String(s.maxHr), 'maks. puls']] : []),
-  ].map(([, v, l]) => '<div class="tile"><div class="tv">' + v + '</div><div class="tl">' + l + '</div></div>').join('');
+    [fmtTime(s.durationS), 'czas'],
+    [s.distanceKm.toFixed(2).replace('.', ','), 'km'],
+    ...(s.przewyzszenieM > 0 ? [[String(s.przewyzszenieM), 'm up']] : []),
+    [s.avgSpeed.toFixed(1).replace('.', ','), 'średnia km/h'],
+    ...(s.avgHr ? [[String(s.avgHr), 'średni puls'], [String(s.maxHr), 'maks. puls']] : []),
+  ].map(([v, l]) => '<div class="tile"><div class="tv">' + v + '</div><div class="tl">' + l + '</div></div>').join('');
 
   const values = downsample(s.samples.map((x) => x.actual ?? x.target ?? 0));
   const max = Math.max(...values, 1);

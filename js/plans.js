@@ -364,6 +364,17 @@ export const KIND_LABEL = {
   cooldown: 'Schłodzenie',
 };
 
+/**
+ * Nachylenie w terenie to połowa nachylenia bieżni — pas nie daje tego, co
+ * prawdziwe zbocze. 10 km na 20 % bieżni to więc 1 km w górę. Tej samej
+ * reguły używa edytor (plan) i silnik (to, co faktycznie przebiegłeś).
+ */
+export const nachylenieTerenu = (i) => i / 2;
+
+/** Metry w górę na odcinku o danej długości i nachyleniu bieżni. */
+export const przewyzszenie = (metry, nachylenieBiezni) =>
+  metry * (nachylenieTerenu(Math.max(0, nachylenieBiezni)) / 100);
+
 /** Szacowany VO2max z testu Coopera (dystans w metrach). */
 export const cooperVo2 = (meters) => Math.round(((meters - 504.9) / 44.73) * 10) / 10;
 

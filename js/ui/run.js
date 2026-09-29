@@ -4,7 +4,7 @@
 import { KIND_LABEL, fmtTime } from '../plans.js';
 import { STATE } from '../engine.js';
 import * as store from '../storage.js';
-import { $, el, tm, speech, keeper, engine, trace, stan, opisWyniku, toast, esc } from './core.js';
+import { $, el, tm, speech, keeper, engine, trace, stan, opisWyniku, czesciWyniku, toast, esc } from './core.js';
 import { showSummary } from './summary.js';
 
 // Ile sekund przed zmianą prędkości środek pierścienia przechodzi
@@ -20,7 +20,11 @@ const PROMIEN_ZEWN = 95;
 // odcinkach łuk zostaje mimo to widoczny — patrz Math.max niżej.
 const PRZERWA_LUKU = 3;
 
+// Wynik zapisujemy raz, a koniec treningu obsługujemy raz. To dwie różne
+// chwile, gdy po treningu jest schłodzenie: wynik trafia do historii zaraz
+// po ostatnim odcinku, a podsumowanie i zapis techniczny — po schłodzeniu.
 let runSaved = false;
+let koniecObsluzony = false;
 let msgTimer;
 
 /** Łuk pojedynczego odcinka jako okrąg z jedną kreską na obwodzie. */
@@ -83,6 +87,41 @@ export function przygotujEkranTreningu(rozpisany) {
   clearTimeout(msgTimer);
   $('run-msg').textContent = '';
   runSaved = false;
+  koniecObsluzony = false;
+}
+
+/**
+ * Ekran w trakcie obowiązkowego schłodzenia. Odlicza tylko schłodzenie,
+ * a wiersz pod prędkością stoi na wyniku treningu — idąc, widzisz swój
+ * wynik, a nie licznik, który rośnie dalej i miesza się z wynikiem.
+ */
+function rysujSchlodzenie(d) {
+  const s = d.schlodzenie;
+  const widok = $('view-run');
+  widok.dataset.kind = 'cooldown';
+  widok.classList.remove('odliczanie');
+  $('run-kind').textContent = 'po treningu';
+  $('run-label').textContent = 'Schłodzenie';
+  $('run-segtime').textContent = fmtTime(s.pozostalo);
+  $('ring-sub').textContent = 'do końca schłodzenia';
+  $('ring-fg').style.strokeDashoffset = String(RING * (s.pozostalo / s.trwanie));
+  odswiezPierscienOdcinkow(Infinity);
+  const actual = d.metrics.speed;
+  $('run-speed').textContent = (actual ?? s.speed).toFixed(1).replace('.', ',');
+  $('run-target').textContent = s.speed.toFixed(1).replace('.', ',');
+  $('run-total').textContent = fmtTime(s.pozostalo);
+  // Kafelki pełnego panelu: pas mierzymy na bieżąco, wynik zostaje zamrożony.
+  $('run-dist').textContent = d.wynik.distanceKm.toFixed(2).replace('.', ',');
+  $('run-avg').textContent = d.wynik.avgSpeed.toFixed(1).replace('.', ',');
+  $('run-kcal').textContent = String(d.wynik.kcal);
+  $('run-incline').textContent = String(d.metrics.incline ?? 0);
+  $('run-pace').textContent = paceStr(actual ?? s.speed);
+  $('run-hr').textContent = d.metrics.hr ? String(d.metrics.hr) : '—';
+  $('run-mini').innerHTML = czesciWyniku(d.wynik).map((x) => '<span>' + x + '</span>').join('');
+  $('run-offset').classList.add('hidden');
+  $('run-factor').classList.add('hidden');
+  // Po schłodzeniu nic już nie ma, więc „Dalej:" znika.
+  $('run-next').classList.add('hidden');
 }
 
 /**
@@ -100,10 +139,9 @@ export function updateInclineUi() {
 
 function paceStr(kmh) {
   if (!kmh || kmh < 0.5) return '—';
-  const total = 60 / kmh;
-  const m = Math.floor(total);
-  const s = Math.round((total - m) * 60);
-  return m + ':' + String(s).padStart(2, '0');
+  // Całe sekundy przed podziałem na minuty — inaczej wychodziło „5:60".
+  const s = Math.round(3600 / kmh);
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 }
 
 engine.on('tick', (d) => {
@@ -113,6 +151,8 @@ engine.on('tick', (d) => {
     return;
   }
   $('run-countdown').classList.add('hidden');
+  if (d.schlodzenie) { rysujSchlodzenie(d); return; }
+  $('run-next').classList.remove('hidden');
 
   const profile = stan.profile;
   const seg = d.segment;
@@ -248,12 +288,8 @@ async function waitForBeltStop(maxS = 30) {
   await new Promise((r) => setTimeout(r, 400));
 }
 
-/**
- * "ended" leci dopiero po wysłaniu komendy zatrzymania pasa — inaczej
- * najważniejszy moment treningu wypadałby poza zapisem technicznym.
- */
-engine.on('ended', async (sum) => {
-  // Zabezpieczenie przed dwukrotnym zapisem tego samego treningu.
+/** Wynik do historii — dokładnie raz, niezależnie od tego, które zdarzenie przyjdzie pierwsze. */
+function zapiszWynik(sum) {
   if (runSaved) return;
   runSaved = true;
   // Kontekst sprzętowy dopisujemy tutaj — silnik nic nie wie o połączeniu.
@@ -261,6 +297,21 @@ engine.on('ended', async (sum) => {
   sum.auto = engine.autoControl;
   stan.lastSummary = sum;
   store.addHistory(sum);
+}
+
+// Przed schłodzeniem: trening jest ukończony, więc wynik od razu ląduje
+// w historii — nawet jeśli telefon padnie w trakcie marszu.
+engine.on('wynik', zapiszWynik);
+
+/**
+ * "ended" leci dopiero po wysłaniu komendy zatrzymania pasa — inaczej
+ * najważniejszy moment treningu wypadałby poza zapisem technicznym.
+ */
+engine.on('ended', async (sum) => {
+  // Zabezpieczenie przed dwukrotną obsługą końca tego samego treningu.
+  if (koniecObsluzony) return;
+  koniecObsluzony = true;
+  zapiszWynik(sum);
   showSummary(sum);
 
   // Rejestrator dopisuje do chwili, aż pas faktycznie stanie — zamiast

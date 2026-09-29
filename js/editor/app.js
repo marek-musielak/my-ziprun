@@ -57,9 +57,10 @@ function status(tekst, blad = false) {
 
 // --------------------------------------------------------------- lista
 
-const pole = (nazwa, wartosc, jednostka, tryb) =>
+const pole = (nazwa, wartosc, jednostka, tryb, podpowiedz = '') =>
   '<label class="ed-pole ed-' + nazwa + '">' +
-  '<input class="input" data-pole="' + nazwa + '" value="' + esc(wartosc) + '" inputmode="' + tryb + '" autocomplete="off">' +
+  '<input class="input" data-pole="' + nazwa + '" value="' + esc(wartosc) + '" inputmode="' + tryb + '" autocomplete="off"' +
+    (podpowiedz ? ' placeholder="' + podpowiedz + '"' : '') + '>' +
   '<span class="ed-jedn">' + jednostka + '</span></label>';
 
 function wiersz(o, sciezka) {
@@ -71,9 +72,10 @@ function wiersz(o, sciezka) {
         (zaznaczone.has(sciezka[0]) ? ' checked' : '') + '>') +
     '<button class="ed-rodzaj" data-akcja="rodzaj" title="Kliknij, żeby zmienić rodzaj">' +
       esc(m.NAZWA_RODZAJU[o.kind] || o.kind) + '</button>' +
-    pole('v', o.v, 'km/h', 'decimal') +
-    pole('i', o.i, '%', 'numeric') +
     pole('t', o.t, '', 'text') +
+    pole('v', o.v, 'km/h', 'decimal') +
+    // Puste nachylenie liczy się jako 0 % — podpowiedź to pokazuje.
+    pole('i', o.i, '%', 'numeric', '0') +
     '<button class="ed-ikona ed-dup" data-akcja="duplikuj">Duplikuj</button>' +
     '<button class="ed-ikona" data-akcja="usun">Usuń</button>' +
     '</div>';

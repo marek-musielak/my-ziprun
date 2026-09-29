@@ -1,7 +1,7 @@
 // Silnik treningu: odlicza segmenty, wysyła komendy do bieżni i pilnuje,
 // żeby zmiany prędkości były zapowiedziane i stopniowe.
 
-import { resolvePlan, fmtTime } from './plans.js';
+import { resolvePlan, fmtTime, przewyzszenie } from './plans.js';
 
 const TICK_MS = 250;
 
@@ -45,9 +45,17 @@ export const STATE = {
   COUNTDOWN: 'countdown',
   RUNNING: 'running',
   PAUSED: 'paused',
+  COOLDOWN: 'cooldown',  // obowiązkowe schłodzenie po treningu, poza wynikiem
   FINISHED: 'finished',
   ABORTED: 'aborted',
 };
+
+/**
+ * Po planie z edytora pas idzie jeszcze kwadrans spokojnym marszem. To nie
+ * jest odcinek planu: nie wlicza się do czasu, dystansu ani przewyższenia,
+ * a skala z panelu i korekty go nie ruszają — zawsze dokładnie to samo.
+ */
+export const SCHLODZENIE = { t: 15 * 60, speed: 4, incline: 0 };
 
 export class WorkoutEngine {
   constructor(treadmill, speech) {
@@ -77,7 +85,13 @@ export class WorkoutEngine {
     this._obserwowanaOd = 0;
     this._zPanelu = null;      // predkosc juz przyjeta z panelu biezni
     this.samples = [];         // do wykresu i historii
-    this._cb = { tick: [], segment: [], state: [], msg: [], ended: [] };
+    this.przewyzszenieM = 0;
+    this.schlodzenie = null;   // SCHLODZENIE dla planów z edytora
+    this.schlodzenieElapsed = 0;
+    this.wynik = null;         // wynik treningu zamrożony przed schłodzeniem
+    // "wynik" leci, gdy trening właściwy się kończy, a "ended", gdy wszystko —
+    // razem ze schłodzeniem. Bez schłodzenia leci tylko "ended".
+    this._cb = { tick: [], segment: [], state: [], msg: [], wynik: [], ended: [] };
 
     this.tm.on('status', (s) => {
       // Kluczyk bezpieczeństwa wyjęty albo użytkownik zatrzymał pas z konsoli.
@@ -85,6 +99,8 @@ export class WorkoutEngine {
       if (s.opcode === 0x02 && this.state === STATE.RUNNING) {
         this.pause('Bieżnia została zatrzymana z konsoli.');
       }
+      // Po treningu zatrzymanie pasa to „koniec", a nie „chwilę odpocznę".
+      if (s.opcode === 0x02 && this.state === STATE.COOLDOWN) this.zakonczSchlodzenie();
     });
   }
 
@@ -114,6 +130,10 @@ export class WorkoutEngine {
     this._obserwowanaOd = 0;
     this._zPanelu = null;
     this.samples = [];
+    this.przewyzszenieM = 0;
+    this.schlodzenie = plan.zEdytora ? SCHLODZENIE : null;
+    this.schlodzenieElapsed = 0;
+    this.wynik = null;
     this.autoControl = !plan.manual && this.tm.caps.speed;
     this._setState(STATE.IDLE);
     return this.plan;
@@ -199,6 +219,7 @@ export class WorkoutEngine {
   }
 
   _tick() {
+    if (this.state === STATE.COOLDOWN) { this._tickSchlodzenia(); return; }
     if (this.state !== STATE.RUNNING) return;
     const now = performance.now();
     const dt = (now - this._lastTs) / 1000;
@@ -208,19 +229,23 @@ export class WorkoutEngine {
     this.totalElapsed += dt;
 
     const m = this.tm.metrics || {};
+    let przyrost;
     if (m.distance != null) {
       if (this._lastMachineDist === null) this._lastMachineDist = m.distance;
-      let delta = m.distance - this._lastMachineDist;
+      przyrost = m.distance - this._lastMachineDist;
       // Bieżnia zeruje własny licznik po zatrzymaniu pasa. Ujemny przyrost to
       // taki reset, a nie cofnięcie się — inaczej przepadłby cały przebyty
       // dystans, gdybyś zatrzymał pas z konsoli w środku treningu.
-      if (delta < 0) delta = m.distance;
+      if (przyrost < 0) przyrost = m.distance;
       this._lastMachineDist = m.distance;
-      this.distanceM = (this.distanceM ?? 0) + delta;
     } else {
       // Bieżnia nie raportuje dystansu — całkujemy z prędkości.
-      this.distanceM = (this.distanceM ?? 0) + ((m.speed ?? this.targetSpeedFor(this.segment)) * 1000 / 3600) * dt;
+      przyrost = ((m.speed ?? this.targetSpeedFor(this.segment)) * 1000 / 3600) * dt;
     }
+    this.distanceM = (this.distanceM ?? 0) + przyrost;
+    // Przewyższenie z tego, co pas faktycznie zrobił: nachylenie zgłoszone
+    // przez bieżnię, a gdy go nie zgłasza — zadane.
+    this.przewyzszenieM += przewyzszenie(przyrost, m.incline ?? this.targetInclineFor(this.segment));
 
     // Kubełkujemy co pięć sekund. Warunek na reszcie z dzielenia był prawdziwy
     // przez całą sekundę, czyli cztery takty — próbek wychodziło czterokrotnie
@@ -322,7 +347,11 @@ export class WorkoutEngine {
 
   _advance() {
     const over = this.segElapsed - this.segment.duration;
-    if (this.segIndex >= this.plan.segments.length - 1) { this.finish(); return; }
+    if (this.segIndex >= this.plan.segments.length - 1) {
+      if (this.schlodzenie) this._rozpocznijSchlodzenie();
+      else this.finish();
+      return;
+    }
     this.segIndex += 1;
     this.segElapsed = Math.max(0, over);
     this.ramping = null;
@@ -454,7 +483,77 @@ export class WorkoutEngine {
     this._loop();
   }
 
+  // ------------------------------------------------ schłodzenie po treningu
+
+  /**
+   * Trening właściwy się skończył: wynik jest gotowy i od razu leci do
+   * zapisu, a pas przechodzi na spokojny marsz. Zegar treningu stoi —
+   * schłodzenie liczy się osobno i niczego w wyniku nie zmienia.
+   */
+  _rozpocznijSchlodzenie() {
+    this.ramping = null;
+    this.wynik = this.summary({ ukonczony: true });
+    this.schlodzenieElapsed = 0;
+    this._setState(STATE.COOLDOWN);
+    this._emit('wynik', this.wynik);
+    const s = this.schlodzenie;
+    this.speech?.say('Trening ukończony. Schłodzenie, ' + spoken(s.speed) + ' kilometrów na godzinę.', { priority: true });
+    if (!this.autoControl) return;
+    // Dokładnie SCHLODZENIE — bez skali z panelu i bez korekt, więc nie
+    // przez targetSpeedFor. Rampa i tak schodzi stopniowo, po pół km/h.
+    (async () => {
+      try {
+        if (this.tm.caps.incline) await this.tm.setIncline(s.incline);
+        if (this.state === STATE.COOLDOWN) await this.tm.rampTo(Math.min(this.profile.maxSpeedCap, s.speed));
+      } catch (e) {
+        this._msg('Bieżnia odrzuciła komendę schłodzenia: ' + e.message);
+      }
+    })();
+  }
+
+  _tickSchlodzenia() {
+    const now = performance.now();
+    this.schlodzenieElapsed += (now - this._lastTs) / 1000;
+    this._lastTs = now;
+    if (this.schlodzenieElapsed >= this.schlodzenie.t) { this.zakonczSchlodzenie(); return; }
+    this._emit('tick', this._tickPayloadSchlodzenia());
+  }
+
+  _tickPayloadSchlodzenia() {
+    const s = this.schlodzenie;
+    return {
+      state: this.state,
+      schlodzenie: {
+        pozostalo: Math.max(0, s.t - this.schlodzenieElapsed),
+        trwanie: s.t,
+        speed: s.speed,
+      },
+      wynik: this.wynik,
+      metrics: this.tm.metrics || {},
+      // Dla rejestratora: pomiary ze schłodzenia też trafiają do zapisu.
+      segment: { label: 'Schłodzenie po treningu', kind: 'cooldown', speed: s.speed, duration: s.t },
+      totalElapsed: this.totalElapsed + this.schlodzenieElapsed,
+      distanceM: this.distanceM ?? 0,
+      targetSpeed: s.speed,
+      targetIncline: s.incline,
+    };
+  }
+
+  /** Koniec schłodzenia — po czasie, przyciskiem albo z konsoli. Wynik bez zmian. */
+  async zakonczSchlodzenie() {
+    if (this.state !== STATE.COOLDOWN) return this.wynik;
+    clearInterval(this._timer);
+    this.tm.stopRamp();
+    this._setState(STATE.FINISHED);
+    if (this.autoControl) { try { await this.tm.stopBelt(); } catch { /* ignoruj */ } }
+    this.speech?.say('Schłodzenie zakończone.', { priority: true });
+    this._emit('ended', this.wynik);
+    return this.wynik;
+  }
+
   async abort(reason = 'Trening przerwany.') {
+    // W schłodzeniu trening jest już ukończony — przerywamy samo schłodzenie.
+    if (this.state === STATE.COOLDOWN) return this.zakonczSchlodzenie();
     clearInterval(this._timer);
     this.tm.stopRamp();
     this._setState(STATE.ABORTED);
@@ -484,12 +583,13 @@ export class WorkoutEngine {
     return s;
   }
 
-  summary() {
+  summary({ ukonczony = this.state === STATE.FINISHED } = {}) {
     const m = this.tm.metrics || {};
     const durationS = Math.round(this.totalElapsed);
     const distanceKm = (this.distanceM ?? 0) / 1000;
     const hrs = this.samples.map((x) => x.hr).filter((x) => x > 0);
     return {
+      przewyzszenieM: Math.round(this.przewyzszenieM),
       planId: this.plan?.id,
       planName: this.plan?.name,
       date: new Date().toISOString(),
@@ -499,7 +599,7 @@ export class WorkoutEngine {
       avgSpeed: durationS > 0 ? (distanceKm / (durationS / 3600)) : 0,
       avgHr: hrs.length ? Math.round(hrs.reduce((a, b) => a + b, 0) / hrs.length) : null,
       maxHr: hrs.length ? Math.max(...hrs) : null,
-      completed: this.state === STATE.FINISHED,
+      completed: ukonczony,
       speedOffset: this.speedOffset,
       speedFactor: this.speedFactor,
       // Zaplanowany czas pozwala policzyć, jak daleko zaszedłeś w przerwanym
@@ -507,7 +607,7 @@ export class WorkoutEngine {
       // godzinie.
       plannedS: this.plan?.totalSeconds ?? null,
       segmentCount: this.plan?.segments.length ?? null,
-      segmentsDone: this.segIndex + (this.state === STATE.FINISHED ? 1 : 0),
+      segmentsDone: this.segIndex + (ukonczony ? 1 : 0),
       maxSpeed: this.samples.reduce((a, s) => Math.max(a, s.actual ?? s.target ?? 0), 0),
       samples: this.samples,
     };

@@ -110,7 +110,8 @@ export class Trace {
     // zapisze pomiarów, a właśnie wtedy widać, czy pas faktycznie zwolnił
     // do zera. Bieżnia hamuje kilka sekund po komendzie zatrzymania.
     treadmill.on('data', (m) => {
-      if (engine.state === STATE.RUNNING) return;
+      // W treningu i w schłodzeniu pomiary idą z taktów silnika.
+      if (engine.state === STATE.RUNNING || engine.state === STATE.COOLDOWN) return;
       this.metric({
         workout: null,
         speed: m.speed ?? null,

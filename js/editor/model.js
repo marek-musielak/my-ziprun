@@ -7,6 +7,8 @@
 // wartość została na ekranie podświetlona, a nie po cichu poprawiona.
 // Liczby powstają dopiero w `przelicz`.
 
+import { nachylenieTerenu, przewyzszenie } from '../plans.js';
+
 /** Kolejność rodzajów pod przyciskiem: każde kliknięcie przechodzi dalej. */
 export const CYKL_RODZAJOW = ['work', 'recovery', 'cooldown', 'warmup'];
 
@@ -71,9 +73,13 @@ export function parsujPredkosc(txt) {
   return v >= ZAKRES.predkoscMin && v <= ZAKRES.predkoscMax ? v : null;
 }
 
-/** Nachylenie bieżni w pełnych procentach. */
+/**
+ * Nachylenie bieżni w pełnych procentach. Puste pole to 0 % — bieg po
+ * płaskim jest najczęstszy i nie trzeba wpisywać zera w każdym odcinku.
+ */
 export function parsujNachylenie(txt) {
   const s = String(txt ?? '').trim();
+  if (s === '') return 0;
   if (!/^\d{1,2}$/.test(s)) return null;
   const i = Number(s);
   return i >= ZAKRES.nachylenieMin && i <= ZAKRES.nachylenieMax ? i : null;
@@ -281,19 +287,13 @@ export function doPlanu(liczbowy) {
 
 // ------------------------------------------------------------ podsumowanie
 
-/**
- * Nachylenie w terenie to połowa nachylenia bieżni — pas nie daje tego, co
- * prawdziwe zbocze. 10 km na 20 % bieżni to więc 1 km w górę.
- */
-export const nachylenieTerenu = (i) => i / 2;
-
 export function podsumowanie(odcinki) {
   let czasS = 0, dystansKm = 0, przewyzszenieM = 0;
   for (const o of odcinki) {
     const km = (o.v * o.t) / 3600;
     czasS += o.t;
     dystansKm += km;
-    przewyzszenieM += km * 1000 * (nachylenieTerenu(o.i) / 100);
+    przewyzszenieM += przewyzszenie(km * 1000, o.i);
   }
   return { czasS, dystansKm, przewyzszenieM, odcinkow: odcinki.length };
 }

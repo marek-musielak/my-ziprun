@@ -277,6 +277,7 @@ export function historyStats(h = loadHistory()) {
   const km = h.reduce((a, x) => a + (x.distanceKm || 0), 0);
   const sec = h.reduce((a, x) => a + (x.durationS || 0), 0);
   const kcal = h.reduce((a, x) => a + (x.kcal || 0), 0);
+  const upM = h.reduce((a, x) => a + (x.przewyzszenieM || 0), 0);
   const weekAgo = Date.now() - 7 * 864e5;
   const thisWeek = h.filter((x) => new Date(x.date).getTime() > weekAgo);
   return {
@@ -285,6 +286,7 @@ export function historyStats(h = loadHistory()) {
     totalKm: Math.round(km * 10) / 10,
     totalSec: sec,
     totalKcal: kcal,
+    totalUpM: Math.round(upM),
     weekCount: thisWeek.length,
     weekKm: Math.round(thisWeek.reduce((a, x) => a + (x.distanceKm || 0), 0) * 10) / 10,
   };

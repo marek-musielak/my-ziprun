@@ -41,7 +41,15 @@ describe('pola', () => {
   test('nachylenie: 0–20 % w pełnych procentach', () => {
     assert.equal(m.parsujNachylenie('0'), 0);
     assert.equal(m.parsujNachylenie('20'), 20);
-    for (const zly of ['21', '2.5', '-1', '']) assert.equal(m.parsujNachylenie(zly), null, zly);
+    for (const zly of ['21', '2.5', '-1', 'x']) assert.equal(m.parsujNachylenie(zly), null, zly);
+  });
+
+  test('nachylenie: puste pole to 0 %', () => {
+    assert.equal(m.parsujNachylenie(''), 0);
+    assert.equal(m.parsujNachylenie('   '), 0);
+    const w = m.przelicz(plan(odc('work', 9, '', 60)));
+    assert.equal(w.ok, true);
+    assert.equal(w.plan.elementy[0].i, 0);
   });
 
   test('powtórzenia grupy: 1–50', () => {

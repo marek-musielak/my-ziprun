@@ -15,6 +15,9 @@ export function renderHistory() {
     [st.totalKm.toFixed(1).replace('.', ',') + ' km', 'łącznie'],
     [fmtTime(st.totalSec), 'w ruchu'],
     [st.weekKm.toFixed(1).replace('.', ',') + ' km', 'ostatnie 7 dni'],
+    // Starsze treningi nie mają zapisanego przewyższenia — kafelek pojawia
+    // się dopiero, gdy któryś trening je ma.
+    ...(st.totalUpM > 0 ? [[st.totalUpM + ' m up', 'łącznie']] : []),
   ].map(([v, l]) => '<div class="tile"><div class="tv">' + v + '</div><div class="tl">' + l + '</div></div>').join('');
 
   $('hist-list').innerHTML = h.length
@@ -35,8 +38,10 @@ const liczba = (v, miejsc = 2) => v.toFixed(miejsc).replace('.', ',');
 /** Tempo w min/km — dla biegacza czytelniejsze niż km/h. */
 function tempoZPredkosci(kmh) {
   if (!kmh || kmh < 0.5) return null;
-  const min = 60 / kmh;
-  return Math.floor(min) + ':' + String(Math.round((min - Math.floor(min)) * 60)).padStart(2, '0');
+  // Najpierw zaokrąglamy całe sekundy, potem dzielimy na minuty — inaczej
+  // 9,9999 km/h dawało „5:60" zamiast „6:00".
+  const s = Math.round(3600 / kmh);
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 }
 
 /** Miniaturowy przebieg prędkości. Próbki mamy tylko dla ostatnich treningów. */
@@ -65,7 +70,6 @@ function wpisHistorii(x, wszystkie, idx) {
   if (x.avgSpeed) fakty.push(['średnia', liczba(x.avgSpeed, 1) + ' km/h']);
   if (tempo) fakty.push(['tempo', tempo + ' min/km']);
   if (x.maxSpeed) fakty.push(['maksimum', liczba(x.maxSpeed, 1) + ' km/h']);
-  if (x.kcal) fakty.push(['kalorie', x.kcal + ' kcal']);
   if (x.avgHr) fakty.push(['tętno śr.', x.avgHr + ' bpm']);
   if (x.maxHr) fakty.push(['tętno maks.', x.maxHr + ' bpm']);
   if (x.segmentCount) fakty.push(['odcinki', (x.segmentsDone ?? '?') + ' z ' + x.segmentCount]);
@@ -98,7 +102,8 @@ function wpisHistorii(x, wszystkie, idx) {
         '<div><div class="nm">' + esc(x.planName || '—') + '</div>' +
         '<div class="dt">' + data.toLocaleString('pl-PL') +
         (x.completed ? '' : ' · przerwany' + postep) + '</div></div>' +
-        '<div class="st"><div>' + liczba(km) + ' km</div>' +
+        '<div class="st"><div>' + liczba(km) + ' km' +
+          (x.przewyzszenieM > 0 ? ' · ' + x.przewyzszenieM + ' m up' : '') + '</div>' +
         '<div class="dt">' + fmtTime(czas) + '</div></div>' +
       '</div>' +
       '<div class="hist-det">' +
