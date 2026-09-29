@@ -86,6 +86,8 @@ export class WorkoutEngine {
     this._zPanelu = null;      // predkosc juz przyjeta z panelu biezni
     this.samples = [];         // do wykresu i historii
     this.przewyzszenieM = 0;
+    this._dystansBiezni = 0;
+    this._dystansZPredkosci = 0;
     this.schlodzenie = null;   // SCHLODZENIE dla planów z edytora
     this.schlodzenieElapsed = 0;
     this.wynik = null;         // wynik treningu zamrożony przed schłodzeniem
@@ -131,6 +133,8 @@ export class WorkoutEngine {
     this._zPanelu = null;
     this.samples = [];
     this.przewyzszenieM = 0;
+    this._dystansBiezni = 0;
+    this._dystansZPredkosci = 0;
     this.schlodzenie = plan.zEdytora ? SCHLODZENIE : null;
     this.schlodzenieElapsed = 0;
     this.wynik = null;
@@ -229,20 +233,25 @@ export class WorkoutEngine {
     this.totalElapsed += dt;
 
     const m = this.tm.metrics || {};
-    let przyrost;
+    // Dwa liczniki naraz: z prędkości pasa i z licznika bieżni. FS-CA455B
+    // wysyła pole dystansu, ale cały czas z zerem — ufanie mu dawało 0,00 km
+    // i średnią 0,0 (zapis z 29 września). Licznik bieżni wygrywa dopiero,
+    // gdy cokolwiek policzy; do tego czasu liczymy sami. Oba biegną od startu,
+    // więc przy przełączeniu nic nie liczy się podwójnie ani nie przepada.
+    this._dystansZPredkosci += ((m.speed ?? this.targetSpeedFor(this.segment)) * 1000 / 3600) * dt;
     if (m.distance != null) {
       if (this._lastMachineDist === null) this._lastMachineDist = m.distance;
-      przyrost = m.distance - this._lastMachineDist;
+      let d = m.distance - this._lastMachineDist;
       // Bieżnia zeruje własny licznik po zatrzymaniu pasa. Ujemny przyrost to
       // taki reset, a nie cofnięcie się — inaczej przepadłby cały przebyty
       // dystans, gdybyś zatrzymał pas z konsoli w środku treningu.
-      if (przyrost < 0) przyrost = m.distance;
+      if (d < 0) d = m.distance;
       this._lastMachineDist = m.distance;
-    } else {
-      // Bieżnia nie raportuje dystansu — całkujemy z prędkości.
-      przyrost = ((m.speed ?? this.targetSpeedFor(this.segment)) * 1000 / 3600) * dt;
+      this._dystansBiezni += d;
     }
-    this.distanceM = (this.distanceM ?? 0) + przyrost;
+    const dystans = this._dystansBiezni > 0 ? this._dystansBiezni : this._dystansZPredkosci;
+    const przyrost = Math.max(0, dystans - (this.distanceM ?? 0));
+    this.distanceM = dystans;
     // Przewyższenie z tego, co pas faktycznie zrobił: nachylenie zgłoszone
     // przez bieżnię, a gdy go nie zgłasza — zadane.
     this.przewyzszenieM += przewyzszenie(przyrost, m.incline ?? this.targetInclineFor(this.segment));

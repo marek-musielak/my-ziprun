@@ -6,6 +6,8 @@ Thumbs.db
 # jest publiczne, a te pliki opisują konkretne urządzenie i przebieg treningu.
 ziprun-*.txt
 ziprun-*.json
+# Zapisy przemianowane ręcznie przed wrzuceniem do analizy (np. trening.txt).
+/*.txt
 
 # Zrzuty ekranu i zdjecia wrzucane do analizy zostaja lokalnie. Ukosnik na
 # poczatku ogranicza regule do glownego katalogu, wiec ikony aplikacji

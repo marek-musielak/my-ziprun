@@ -129,6 +129,27 @@ describe('przebieg treningu', () => {
     assert.equal(engine.distanceM, 150);
   });
 
+  test('bieżnia, która wysyła dystans stale równy zero, nie zeruje wyniku', async () => {
+    // Tak robi FS-CA455B: pole dystansu jest w ramce, ale zawsze 0.
+    await uruchom({ auto: false });
+    tm.metrics = { speed: 7.2, distance: 0 }; // 2 m/s
+    przewin(10);
+    assert.ok(Math.abs(engine.distanceM - 20) < 1e-9, 'dystans: ' + engine.distanceM);
+    assert.ok(engine.summary().avgSpeed > 7);
+  });
+
+  test('gdy licznik bieżni ruszy, wygrywa — bez podwójnego liczenia', async () => {
+    await uruchom({ auto: false });
+    tm.metrics = { speed: 7.2, distance: 0 };
+    przewin(5);              // 10 m z prędkości, bieżnia jeszcze nic
+    tm.metrics.distance = 12; // bieżnia policzyła od startu 12 m
+    przewin(0.25);
+    assert.equal(engine.distanceM, 12, 'licznik bieżni obejmuje cały dotychczasowy dystans');
+    tm.metrics.distance = 30;
+    przewin(0.25);
+    assert.equal(engine.distanceM, 30);
+  });
+
   test('bez dystansu z bieżni całkuje go z prędkości', async () => {
     await uruchom({ auto: false });
     tm.metrics = { speed: 7.2 }; // 2 m/s

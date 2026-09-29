@@ -10,9 +10,19 @@
 // typu "to jeszcze nie jest wypchnięte, więc dopiszę do poprzedniej wersji" —
 // taki wyjątek raz już doprowadził do sześciu commitów pod jednym numerem.
 
-export const VERSION = '1.19.0';
+export const VERSION = '1.19.1';
 
 export const CHANGELOG = [
+  {
+    version: '1.19.1',
+    date: '2026-09-29',
+    title: 'Dystans na bieżni, która go nie liczy',
+    changes: [
+      'FS-CA455B wysyła pole dystansu, ale cały czas z zerem. Aplikacja mu ufała, więc trening kończył się z wynikiem 0,00 km, średnią 0,0 km/h i zerowym przewyższeniem.',
+      'Dystans liczy się teraz z prędkości pasa, dopóki licznik bieżni ani razu nie wzrośnie. Gdy bieżnia zacznie liczyć sama, aplikacja przełącza się na jej licznik — bez podwójnego liczenia.',
+      'Przewyższenie wynika z dystansu, więc na tej bieżni też jest już prawdziwe.',
+    ],
+  },
   {
     version: '1.19.0',
     date: '2026-09-29',
