@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f14">
+<title>ZipRun — plany treningowe dla bieżni</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<div id="unsupported" class="banner hidden">
+  <strong>Ta przeglądarka nie obsługuje Web Bluetooth.</strong>
+  Otwórz aplikację w <b>Chrome</b> lub <b>Edge na Androidzie</b>, po HTTPS.
+  Firefox, Safari i iOS nie mają tego API.
+</div>
+
+<header id="topbar">
+  <button id="brand" class="brand">Zip<span>Run</span><em id="brand-ver">—</em></button>
+  <button id="btn-connect" class="chip chip-action">Połącz bieżnię</button>
+  <div id="conn-dot" class="dot" title="Brak połączenia"></div>
+</header>
+
+<main>
+
+<!-- ============================ PLANY ============================ -->
+<section id="view-plans" class="view active">
+  <div class="hero">
+    <h1>Plany treningowe</h1>
+    <p id="plans-sub">Prędkości skalują się z Twojego profilu — ten sam plan rośnie razem z formą.</p>
+  </div>
+  <div id="plan-filters" class="filters">
+    <button class="chip active" data-level="all">Wszystkie</button>
+    <button class="chip" data-level="fav">★ Ulubione</button>
+    <button class="chip" data-level="1">Łatwe</button>
+    <button class="chip" data-level="2">Średnie</button>
+    <button class="chip" data-level="3">Mocne</button>
+    <button class="chip" data-level="own">Moje</button>
+  </div>
+  <button id="btn-new-plan" class="ghost big">+ Ułóż własny plan</button>
+  <div id="plan-list" class="plan-list"></div>
+</section>
+
+<!-- ======================== KREATOR PLANU ======================== -->
+<section id="view-creator" class="view">
+  <button class="back" data-goto="plans">← Plany</button>
+  <h1>Własny plan</h1>
+  <p class="desc">Podaj czas, rodzaj treningu i intensywność — resztę, czyli długość
+    rozgrzewki, liczbę serii i długości odcinków, policzy generator. Prędkości
+    zapisują się jako poziomy wysiłku, więc plan skaluje się razem z profilem.</p>
+
+  <div class="card">
+    <div class="card-title">Rodzaj treningu</div>
+    <div id="kr-typy" class="filters"></div>
+    <p id="kr-opis" class="hint" style="margin:8px 0 0"></p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Czas i intensywność</div>
+    <label class="field">
+      <span>Długość treningu</span>
+      <div class="range-row"><input id="kr-czas" type="range" min="10" max="90" step="5"><b id="kr-czas-v"></b></div>
+    </label>
+    <div id="kr-intensywnosc" class="filters" style="margin-top:4px"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Podgląd</div>
+    <div id="kr-meta" class="meta-row"></div>
+    <div id="kr-chart" class="chart"></div>
+    <div class="legend">
+      <span><i class="sw warmup"></i>rozgrzewka</span>
+      <span><i class="sw work"></i>praca</span>
+      <span><i class="sw recovery"></i>przerwa</span>
+      <span><i class="sw cooldown"></i>schłodzenie</span>
+    </div>
+    <div id="kr-segments" class="seg-list" style="margin-top:10px"></div>
+  </div>
+
+  <label class="field">
+    <span>Nazwa planu</span>
+    <input id="kr-nazwa" type="text" maxlength="40" placeholder="zostaw puste, żeby użyć domyślnej">
+  </label>
+  <button id="btn-save-plan" class="primary big">Zapisz plan</button>
+</section>
+
+<!-- ======================== SZCZEGÓŁY PLANU ======================== -->
+<section id="view-plan" class="view">
+  <div class="head-row">
+    <button class="back" data-goto="plans">← Plany</button>
+    <button id="btn-fav" class="chip fav-toggle" aria-pressed="false">☆ Ulubiony</button>
+  </div>
+  <h1 id="pd-name"></h1>
+  <div id="pd-meta" class="meta-row"></div>
+  <p id="pd-desc" class="desc"></p>
+  <div class="card">
+    <div class="card-title">Profil intensywności</div>
+    <div id="pd-chart" class="chart"></div>
+    <div class="legend">
+      <span><i class="sw warmup"></i>rozgrzewka</span>
+      <span><i class="sw work"></i>praca</span>
+      <span><i class="sw recovery"></i>przerwa</span>
+      <span><i class="sw cooldown"></i>schłodzenie</span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Segmenty</div>
+    <div id="pd-segments" class="seg-list"></div>
+  </div>
+  <div id="pd-warning" class="note hidden"></div>
+  <button id="btn-start" class="primary big">Rozpocznij trening</button>
+  <button id="btn-delete-plan" class="ghost big hidden">Usuń ten plan</button>
+</section>
+
+<!-- ============================ TRENING ============================ -->
+<section id="view-run" class="view">
+  <div id="run-countdown" class="countdown hidden"><span id="cd-num">5</span></div>
+
+  <div class="run-head">
+    <div id="run-kind" class="kind">—</div>
+    <div id="run-label" class="seg-label">—</div>
+    <!-- Przełącznik siedzi w nagłówku, a nie w stopce, bo w trybie pełnym
+         stopka wypada poniżej krawędzi ekranu i trzeba by jej szukać.
+         Ikona zamiast napisu, żeby nie zabierał szerokości nagłówkowi. -->
+    <button id="btn-mode" class="mode-toggle" title="Zmień układ ekranu"
+            aria-label="Zmień układ ekranu"></button>
+  </div>
+
+  <div class="ring-wrap">
+    <!-- Dwa pierścienie. Wewnętrzny pokazuje postęp bieżącego odcinka — przybywa.
+         Zewnętrzny to postęp całego treningu, rozbity na łuki odpowiadające
+         odcinkom planu; każdy wypełnia się osobno, więc widać nie tylko ile
+         zostało, ale też z ilu kawałków składa się reszta. Łuki powstają
+         w kodzie, bo ich liczba i długości zależą od wybranego planu. -->
+    <svg id="ring" viewBox="0 0 200 200" aria-hidden="true">
+      <g id="ring-segments"></g>
+      <circle class="ring-bg" cx="100" cy="100" r="80"></circle>
+      <circle id="ring-fg" class="ring-fg" cx="100" cy="100" r="80"></circle>
+    </svg>
+    <div class="ring-center">
+      <div id="run-segtime" class="segtime">0:00</div>
+      <div id="ring-sub" class="ring-sub">do końca odcinka</div>
+    </div>
+  </div>
+
+  <!-- Wszystko poza pierścieniem i nagłówkiem siedzi w jednym kontenerze.
+       W pionie jest on przezroczysty dla układu (display: contents), w poziomie
+       staje się prawą kolumną wyśrodkowaną w pionie jako całość — inaczej jego
+       elementy byłyby osobnymi wierszami siatki i rozjeżdżały się pionowo,
+       rozciągane wysokością pierścienia obok. -->
+  <div class="run-side">
+
+  <div class="speed-block">
+    <div class="speed-actual">
+      <span id="run-speed">0.0</span><small>km/h</small>
+    </div>
+    <div class="speed-target">
+      cel <b id="run-target">0.0</b> km/h
+      <span id="run-offset" class="offset hidden"></span>
+      <span id="run-factor" class="offset hidden"></span>
+    </div>
+  </div>
+
+  <div class="tiles">
+    <div class="tile"><div class="tv" id="run-total">0:00</div><div class="tl">pozostało</div></div>
+    <div class="tile"><div class="tv" id="run-dist">0.00</div><div class="tl">km</div></div>
+    <div class="tile" id="tile-incline"><div class="tv" id="run-incline">0</div><div class="tl">% nachylenia</div></div>
+    <div class="tile" id="tile-avg"><div class="tv" id="run-avg">0,0</div><div class="tl">śr. km/h</div></div>
+    <div class="tile"><div class="tv" id="run-kcal">0</div><div class="tl">kcal</div></div>
+    <div class="tile"><div class="tv" id="run-hr">—</div><div class="tl">puls</div></div>
+    <div class="tile"><div class="tv" id="run-pace">—</div><div class="tl">min/km</div></div>
+  </div>
+
+  <!-- Wiersz skrótowy i stopka należą do trybu kompaktowego; w pełnym są
+       ukryte, a ich rolę pełnią kafelki i przyciski sterowania. -->
+  <div id="run-mini" class="mini"></div>
+
+  <div id="run-next" class="next"></div>
+
+  <div class="run-foot">
+    <button id="btn-end" class="ghost">Zakończ trening</button>
+  </div>
+
+  <div class="controls">
+    <button id="c-slower" class="ctl">−0,5<small>km/h</small></button>
+    <button id="c-pause" class="ctl wide">Pauza</button>
+    <button id="c-faster" class="ctl">+0,5<small>km/h</small></button>
+    <button id="c-inc-down" class="ctl">−1<small>%</small></button>
+    <button id="c-skip" class="ctl wide">Następny odcinek ›</button>
+    <button id="c-inc-up" class="ctl">+1<small>%</small></button>
+  </div>
+  <button id="c-stop" class="danger big">ZATRZYMAJ</button>
+  <div id="run-msg" class="run-msg"></div>
+
+  </div><!-- /run-side -->
+</section>
+
+<!-- ========================= PODSUMOWANIE ========================= -->
+<section id="view-summary" class="view">
+  <h1 id="sum-title">Trening ukończony</h1>
+  <div id="sum-plan" class="desc"></div>
+  <div class="tiles big-tiles" id="sum-tiles"></div>
+  <div class="card"><div class="card-title">Przebieg prędkości</div><div id="sum-chart" class="chart"></div></div>
+  <div id="sum-extra"></div>
+  <button id="btn-export-trace" class="ghost big">Eksportuj zapis techniczny</button>
+  <button class="primary big" data-goto="plans">Gotowe</button>
+</section>
+
+<!-- =========================== HISTORIA =========================== -->
+<section id="view-history" class="view">
+  <div class="hero"><h1>Historia</h1></div>
+  <div class="tiles big-tiles" id="hist-stats"></div>
+  <div id="hist-list" class="hist-list"></div>
+
+  <div class="card">
+    <div class="card-title">Zapisy techniczne</div>
+    <p class="hint">
+      Pełny przebieg treningu: komendy wysłane do bieżni, jej odpowiedzi,
+      przejścia odcinków i pomiary co sekundę. Przydaje się, gdy coś zachowało
+      się nie tak, jak powinno. Przechowywane są trzy ostatnie treningi.
+    </p>
+    <div id="trace-list" class="trace-list"></div>
+  </div>
+
+  <button id="btn-clear-history" class="ghost">Wyczyść historię</button>
+</section>
+
+<!-- ============================ SPRZĘT ============================ -->
+<section id="view-device" class="view">
+  <div class="hero"><h1>Bieżnia</h1></div>
+
+  <div class="card">
+    <div class="card-title">Połączenie</div>
+    <div id="dev-status" class="kv">Nie połączono.</div>
+    <div class="btn-row">
+      <button id="btn-pick" class="primary">Wybierz i połącz</button>
+      <button id="btn-disconnect" class="ghost">Rozłącz</button>
+    </div>
+    <p class="hint">
+      Bieżnia musi być włączona i <b>nie może być połączona z FitShow</b> —
+      BLE dopuszcza tylko jedno aktywne połączenie. Zamknij FitShow całkowicie.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Wykryte możliwości</div>
+    <div id="dev-caps" class="kv">—</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Diagnostyka protokołu</div>
+    <p class="hint">
+      Ten krok odczytuje pełne drzewo GATT i nasłuchuje ramek. Uruchom go,
+      a potem <b>ręcznie zmień prędkość na konsoli bieżni</b> — zobaczysz,
+      które bajty się zmieniają. Raport możesz wyeksportować.
+    </p>
+    <div class="btn-row">
+      <button id="btn-diag" class="primary">Uruchom diagnostykę</button>
+      <button id="btn-export" class="ghost">Eksportuj raport</button>
+    </div>
+    <div id="diag-tree" class="mono small"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Test sterowania</div>
+    <p class="hint">Sprawdź, czy bieżnia przyjmuje komendy. Stań obok pasa, nie na nim.</p>
+    <div class="btn-row wrap">
+      <button class="ghost" data-test="control">Request control</button>
+      <button class="ghost" data-test="start">Start</button>
+      <button class="ghost" data-test="s3">3 km/h</button>
+      <button class="ghost" data-test="s6">6 km/h</button>
+      <button class="ghost" data-test="i2">Nachylenie 2%</button>
+      <button class="ghost" data-test="stop">Stop</button>
+    </div>
+    <div class="btn-row">
+      <input id="raw-hex" class="input mono" placeholder="ręczna ramka hex, np. 02 04 A0 01 A5 03">
+      <button id="btn-raw" class="ghost">Wyślij</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Log</div>
+    <div id="log" class="mono small log"></div>
+    <button id="btn-clear-log" class="ghost">Wyczyść log</button>
+  </div>
+</section>
+
+<!-- ========================= HISTORIA ZMIAN ========================= -->
+<section id="view-changelog" class="view">
+  <button class="back" id="cl-back">← Wróć</button>
+  <div class="hero">
+    <h1>Historia zmian</h1>
+    <p>Używasz wersji <b id="cl-current">—</b>.</p>
+  </div>
+  <div id="cl-list"></div>
+</section>
+
+<!-- ============================ PROFIL ============================ -->
+<section id="view-profile" class="view">
+  <div class="hero">
+    <h1>Profil</h1>
+    <p>Te dwie prędkości definiują wszystkie plany. Ustaw je szczerze — plan liczony od zawyżonych wartości będzie nie do wykonania.</p>
+  </div>
+
+  <div class="card">
+    <label class="field">
+      <span>Tempo swobodne <em>(możesz rozmawiać)</em></span>
+      <div class="range-row"><input id="p-easy" type="range" min="4" max="14" step="0.1"><b id="p-easy-v"></b></div>
+    </label>
+    <label class="field">
+      <span>Tempo szybkie <em>(utrzymasz ~3 minuty)</em></span>
+      <div class="range-row"><input id="p-fast" type="range" min="6" max="20" step="0.1"><b id="p-fast-v"></b></div>
+    </label>
+    <label class="field">
+      <span>Marsz</span>
+      <div class="range-row"><input id="p-walk" type="range" min="2" max="7" step="0.1"><b id="p-walk-v"></b></div>
+    </label>
+    <div id="anchors" class="anchors"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Limity bezpieczeństwa</div>
+    <label class="field">
+      <span>Maksymalna prędkość, jaką aplikacja może ustawić</span>
+      <div class="range-row"><input id="p-cap" type="range" min="6" max="22" step="0.5"><b id="p-cap-v"></b></div>
+    </label>
+    <label class="field">
+      <span>Maksymalne nachylenie</span>
+      <div class="range-row"><input id="p-inc" type="range" min="0" max="20" step="1"><b id="p-inc-v"></b></div>
+    </label>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Ustawienia</div>
+    <label class="switch"><input id="s-compact" type="checkbox"><span>Tryb kompaktowy — ekran bez przycisków sterowania</span></label>
+    <p class="hint" style="margin:-4px 0 10px">Prędkość i zatrzymanie obsługujesz z panelu bieżni. Wyłącz, żeby mieć na ekranie korekty ±0,5 km/h, pauzę i przeskok odcinka.</p>
+    <label class="switch"><input id="s-voice" type="checkbox"><span>Zapowiedzi głosowe</span></label>
+    <label class="switch"><input id="s-auto" type="checkbox"><span>Automatyczne sterowanie bieżnią</span></label>
+    <label class="switch"><input id="s-follow" type="checkbox"><span>Podążaj za panelem bieżni</span></label>
+    <p class="hint" style="margin:-4px 0 10px">Gdy zmienisz prędkość na bieżni, aplikacja przyjmie ją za swoją i przeliczy resztę planu w tej samej proporcji. Bez tego następny odcinek wróci do prędkości z planu.</p>
+    <label class="switch"><input id="s-awake" type="checkbox"><span>Nie wygaszaj ekranu w trakcie</span></label>
+    <label class="field">
+      <span>Odliczanie przed startem (s)</span>
+      <div class="range-row"><input id="s-countdown" type="range" min="0" max="15" step="1"><b id="s-countdown-v"></b></div>
+    </label>
+    <button id="btn-test-voice" class="ghost">Sprawdź głos</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Kopia danych</div>
+    <p class="hint" style="margin-top:0">
+      Plik z profilem, ustawieniami, całą historią treningów i trzema ostatnimi
+      zapisami technicznymi. Przydaje się przy zmianie telefonu — i jako
+      zabezpieczenie, bo wyczyszczenie danych witryny w przeglądarce kasuje
+      wszystko bezpowrotnie.
+    </p>
+    <div class="btn-row">
+      <button id="btn-export-data" class="ghost">Eksportuj</button>
+      <button id="btn-import-data" class="ghost">Importuj</button>
+    </div>
+    <input id="import-file" type="file" accept="application/json,.json" hidden>
+    <p class="hint">
+      Import <b>dopisuje</b> treningi do istniejących, nie zastępuje ich.
+      Powtórki są rozpoznawane i pomijane.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">O aplikacji</div>
+    <div class="kv">ZipRun <b id="about-ver">—</b><br><span id="about-title" class="hint"></span></div>
+    <div class="btn-row"><button id="btn-changelog" class="ghost">Historia zmian</button></div>
+    <div class="btn-row"><button id="btn-force-update" class="ghost">Pobierz aplikację od nowa</button></div>
+    <p class="hint">
+      Usuwa pamięć podręczną i pobiera wszystkie pliki na świeżo. Profil,
+      historia treningów i zapisy techniczne zostają nienaruszone. Przydaje się,
+      gdy aplikacja uparcie pokazuje starą wersję.
+    </p>
+  </div>
+</section>
+
+</main>
+
+<nav id="tabs">
+  <button class="tab active" data-goto="plans"><span>Plany</span></button>
+  <button class="tab" data-goto="run"><span>Trening</span></button>
+  <button class="tab" data-goto="history"><span>Historia</span></button>
+  <button class="tab" data-goto="device"><span>Bieżnia</span></button>
+  <button class="tab" data-goto="profile"><span>Profil</span></button>
+</nav>
+
+<div id="toast" class="toast"></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

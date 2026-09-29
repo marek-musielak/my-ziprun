@@ -1,0 +1,644 @@
+/* ZipRun — ciemny motyw o wysokim kontraście. Projektowany pod czytanie
+   z odległości ramienia, w ruchu, przy drgającym obrazie. */
+
+:root {
+  --bg: #0b0f14;
+  --bg2: #121821;
+  --card: #161e29;
+  --line: #223041;
+  --fg: #eef4fb;
+  --dim: #8ea2b8;
+  --accent: #ff6a2b;
+  --accent2: #ffa14a;
+  --ok: #2fd97a;
+  --warn: #ffcb3d;
+  --bad: #ff4d5e;
+  --warmup: #4a90d9;
+  --work: #ff6a2b;
+  --recovery: #2fd97a;
+  --cooldown: #7a8ba0;
+  --r: 14px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 15px/1.5 -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+  padding-bottom: calc(64px + var(--safe-b));
+  overscroll-behavior-y: contain;
+}
+
+h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -0.02em; }
+.hidden { display: none !important; }
+
+/* ---------- pasek górny ---------- */
+#topbar {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px;
+  background: linear-gradient(180deg, var(--bg) 70%, transparent);
+  backdrop-filter: blur(8px);
+}
+.brand { font-weight: 800; font-size: 19px; letter-spacing: -0.03em; }
+.brand span { color: var(--accent); }
+#topbar .chip-action { margin-left: auto; }
+.dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--bad); box-shadow: 0 0 8px currentColor; color: var(--bad);
+  flex: 0 0 auto;
+}
+.dot.on { background: var(--ok); color: var(--ok); }
+.dot.wait { background: var(--warn); color: var(--warn); animation: pulse 1s infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+
+main { padding: 0 16px; }
+.view { display: none; animation: fade .18s ease; }
+.view.active { display: block; }
+@keyframes fade { from { opacity: 0; transform: translateY(4px); } }
+
+.hero { margin: 6px 0 16px; }
+.hero p { color: var(--dim); margin: 0; }
+.back {
+  background: none; border: 0; color: var(--dim);
+  font-size: 15px; padding: 8px 0; margin-bottom: 4px;
+}
+
+/* ---------- elementy wspólne ---------- */
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 14px; margin-bottom: 14px;
+}
+.card-title {
+  font-size: 12px; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--dim); margin-bottom: 10px; font-weight: 600;
+}
+.desc { color: var(--dim); margin: 0 0 14px; }
+.hint { color: var(--dim); font-size: 13px; margin: 8px 0 0; }
+.note {
+  background: #3a2a10; border: 1px solid #6b4d16; color: var(--warn);
+  padding: 10px 12px; border-radius: 10px; font-size: 14px; margin-bottom: 14px;
+}
+.banner {
+  background: #3a1216; border-bottom: 1px solid #6b1f27; color: #ffd9dd;
+  padding: 12px 16px; font-size: 14px;
+}
+
+button { font-family: inherit; cursor: pointer; }
+.primary, .danger, .ghost {
+  border-radius: 12px; border: 1px solid transparent;
+  padding: 12px 16px; font-size: 15px; font-weight: 600;
+}
+.primary { background: var(--accent); color: #180a03; }
+.primary:active { background: var(--accent2); }
+.danger { background: var(--bad); color: #2a0409; }
+.ghost { background: transparent; border-color: var(--line); color: var(--fg); }
+.ghost:active { background: var(--bg2); }
+.big { display: block; width: 100%; padding: 16px; font-size: 17px; margin-bottom: 14px; }
+.btn-row { display: flex; gap: 8px; margin-top: 10px; }
+.btn-row.wrap { flex-wrap: wrap; }
+.btn-row > * { flex: 1 1 auto; }
+
+.chip {
+  background: var(--bg2); border: 1px solid var(--line); color: var(--dim);
+  border-radius: 999px; padding: 7px 13px; font-size: 13px; font-weight: 600;
+  /* „★ Ulubione" łamało się na dwie linie w środku pastylki. */
+  white-space: nowrap;
+}
+.chip.active { background: var(--accent); border-color: var(--accent); color: #180a03; }
+.chip-action { background: var(--bg2); color: var(--fg); }
+.filters { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 2px; }
+
+.input {
+  background: var(--bg2); border: 1px solid var(--line); color: var(--fg);
+  border-radius: 10px; padding: 11px 12px; font-size: 15px; width: 100%;
+}
+.mono { font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+.small { font-size: 12px; }
+
+/* ---------- lista planów ---------- */
+.plan-list { display: grid; gap: 12px; }
+.plan {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 14px; text-align: left; width: 100%; color: var(--fg);
+  border-left: 4px solid var(--accent);
+}
+.plan:active { background: var(--bg2); }
+.plan h3 { margin: 0 0 4px; font-size: 17px; }
+.plan .focus { color: var(--accent2); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+.plan .row { display: flex; gap: 12px; color: var(--dim); font-size: 13px; margin-top: 8px; }
+.plan.l1 { border-left-color: var(--recovery); }
+.plan.l2 { border-left-color: var(--warn); }
+.plan.l3 { border-left-color: var(--bad); }
+.lvl { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--bg2); border: 1px solid var(--line); }
+
+.meta-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.meta-row span {
+  background: var(--bg2); border: 1px solid var(--line);
+  padding: 5px 10px; border-radius: 999px; font-size: 12px; color: var(--dim);
+}
+
+/* ---------- wykres profilu ---------- */
+/* overflow: hidden to zabezpieczenie - zaden wykres nie ma prawa wyjsc poza karte,
+   nawet gdyby ktos podal wiecej slupkow, niz miesci sie pikseli. */
+.chart {
+  display: flex; align-items: flex-end; gap: 1px; height: 96px;
+  margin-bottom: 8px; overflow: hidden;
+}
+.chart .bar { flex: 1 1 0; min-width: 1px; border-radius: 2px 2px 0 0; background: var(--work); }
+.chart .bar.warmup { background: var(--warmup); }
+.chart .bar.recovery { background: var(--recovery); }
+.chart .bar.cooldown { background: var(--cooldown); }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--dim); }
+.legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.sw.warmup { background: var(--warmup); } .sw.work { background: var(--work); }
+.sw.recovery { background: var(--recovery); } .sw.cooldown { background: var(--cooldown); }
+
+.seg-list { display: grid; gap: 6px; }
+.seg {
+  display: grid; grid-template-columns: 4px 1fr auto auto; gap: 10px;
+  align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line);
+}
+.seg:last-child { border-bottom: 0; }
+.seg i { width: 4px; height: 26px; border-radius: 2px; background: var(--work); }
+.seg.warmup i { background: var(--warmup); } .seg.recovery i { background: var(--recovery); }
+.seg.cooldown i { background: var(--cooldown); }
+.seg .nm { font-size: 14px; }
+.seg .sp { font-variant-numeric: tabular-nums; font-weight: 700; }
+.seg .tm { color: var(--dim); font-variant-numeric: tabular-nums; min-width: 46px; text-align: right; }
+
+/* ---------- ekran treningu ---------- */
+.run-head { position: relative; text-align: center; margin: 4px 0 8px; }
+/* Mały przełącznik trybu, zawsze w zasięgu — niezależnie od tego, jak długi
+   jest ekran w danym trybie. */
+.mode-toggle {
+  position: absolute; right: 0; top: 0;
+  width: 34px; height: 34px; padding: 0;
+  display: grid; place-items: center;
+  background: var(--bg2); border: 1px solid var(--line); color: var(--dim);
+  border-radius: 10px;
+}
+.mode-toggle svg {
+  width: 18px; height: 18px;
+  fill: none; stroke: currentColor; stroke-width: 1.8;
+}
+.mode-toggle:active { color: var(--accent); border-color: var(--accent); }
+/* Symetryczny odstep trzyma napis wysrodkowany, a jednoczesnie nie pozwala
+   mu wejsc pod przycisk trybu w prawym gornym rogu. */
+.kind {
+  font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--accent2); font-weight: 700; padding: 0 42px;
+}
+.seg-label { font-size: 21px; font-weight: 700; letter-spacing: -.02em; }
+
+.ring-wrap { position: relative; width: min(66vw, 250px); margin: 6px auto 4px; }
+#ring { width: 100%; display: block; transform: rotate(-90deg); }
+.ring-bg { fill: none; stroke: var(--bg2); stroke-width: 12; }
+.ring-fg {
+  fill: none; stroke: var(--accent); stroke-width: 12; stroke-linecap: round;
+  /* Pełne przesunięcie to pusty łuk — wypełnia się w miarę trwania odcinka. */
+  stroke-dasharray: 503; stroke-dashoffset: 503; transition: stroke-dashoffset .25s linear;
+}
+/* Zewnętrzny pierścień to inna informacja niż wewnętrzny, więc dostaje inny
+   kolor. Zielony czyta się jako „zrobione" i nie myli się z pomarańczowym
+   odliczaniem bieżącego odcinka. Jest rozbity na łuki odpowiadające odcinkom
+   planu — widać wtedy nie tylko ile zostało, ale i z czego ta reszta się składa. */
+.seg-arc { fill: none; stroke-width: 7; stroke-linecap: butt; }
+.seg-arc-bg { stroke: var(--line); }
+.seg-arc-fg { stroke: var(--ok); transition: stroke-dasharray .4s linear; }
+.ring-center {
+  position: absolute; inset: 0; display: grid; place-content: center; text-align: center;
+}
+.segtime { font-size: 46px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
+.ring-sub { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: .08em; }
+
+.speed-block { text-align: center; margin: 2px 0 14px; }
+.speed-actual { font-size: 60px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
+.speed-actual small { font-size: 17px; color: var(--dim); font-weight: 600; margin-left: 6px; letter-spacing: 0; }
+.speed-target { color: var(--dim); font-size: 20px; margin-top: 6px; }
+.speed-target b { color: var(--accent2); font-size: 24px; }
+.offset { color: var(--warn); margin-left: 8px; font-weight: 700; }
+.mode { font-size: 12px; color: var(--warn); margin-top: 4px; }
+
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.big-tiles { grid-template-columns: repeat(2, 1fr); }
+.tile { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 8px; text-align: center; }
+.tv { font-size: 21px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tl { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
+
+.next {
+  background: var(--bg2); border: 1px solid var(--line); border-radius: 12px;
+  padding: 10px 12px; font-size: 14px; color: var(--dim); margin-bottom: 12px; text-align: center;
+}
+.next b { color: var(--fg); }
+
+.controls { display: grid; grid-template-columns: 1fr 1.6fr 1fr; gap: 8px; margin-bottom: 10px; }
+.ctl {
+  background: var(--card); border: 1px solid var(--line); color: var(--fg);
+  border-radius: 12px; padding: 14px 6px; font-size: 15px; font-weight: 700;
+}
+.ctl:active { background: var(--accent); color: #180a03; }
+.ctl small { display: block; font-size: 10px; color: var(--dim); font-weight: 500; }
+.ctl:active small { color: #180a03; }
+.run-msg { color: var(--warn); font-size: 13px; min-height: 20px; text-align: center; }
+
+.countdown {
+  position: fixed; inset: 0; z-index: 50; background: rgba(11,15,20,.96);
+  display: grid; place-content: center;
+}
+.countdown span { font-size: 140px; font-weight: 800; color: var(--accent); }
+
+/* ---------- historia ---------- */
+.hist-list { display: grid; gap: 10px; margin-bottom: 14px; }
+.hist {
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px;
+  display: grid; grid-template-columns: 1fr auto; gap: 4px;
+}
+.hist .nm { font-weight: 600; }
+.hist .dt { color: var(--dim); font-size: 12px; }
+.hist .st { text-align: right; font-variant-numeric: tabular-nums; }
+.hist.dnf { opacity: .6; }
+
+/* ---------- profil ---------- */
+.field { display: block; margin-bottom: 16px; }
+.field > span { display: block; font-size: 14px; margin-bottom: 8px; }
+.field em { color: var(--dim); font-style: normal; font-size: 12px; }
+.range-row { display: flex; align-items: center; gap: 12px; }
+.range-row input[type=range] { flex: 1; accent-color: var(--accent); height: 28px; }
+.range-row b { font-variant-numeric: tabular-nums; min-width: 64px; text-align: right; font-size: 17px; }
+.switch { display: flex; align-items: center; gap: 10px; padding: 10px 0; font-size: 15px; }
+.switch input { width: 20px; height: 20px; accent-color: var(--accent); }
+.anchors { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 6px; margin-top: 4px; }
+.anchors div {
+  background: var(--bg2); border: 1px solid var(--line); border-radius: 9px;
+  padding: 7px; text-align: center; font-size: 12px;
+}
+.anchors b { display: block; font-size: 15px; }
+
+/* ---------- diagnostyka ---------- */
+.kv { font-size: 13px; line-height: 1.7; }
+.kv b { color: var(--accent2); }
+.log, #diag-tree {
+  max-height: 260px; overflow: auto; background: #080c11; border: 1px solid var(--line);
+  border-radius: 10px; padding: 10px; margin-top: 10px; white-space: pre-wrap;
+  word-break: break-all; line-height: 1.5;
+}
+
+/* ---------- nawigacja dolna ---------- */
+#tabs {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  background: var(--bg2); border-top: 1px solid var(--line);
+  padding-bottom: var(--safe-b);
+}
+.tab { background: none; border: 0; color: var(--dim); padding: 14px 4px; font-size: 12px; font-weight: 600; }
+.tab.active { color: var(--accent); }
+
+.toast {
+  position: fixed; left: 16px; right: 16px; bottom: calc(76px + var(--safe-b)); z-index: 60;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px 14px; font-size: 14px; opacity: 0; transform: translateY(8px);
+  transition: .2s; pointer-events: none;
+}
+.toast.show { opacity: 1; transform: none; }
+.toast.err { border-color: var(--bad); color: #ffd9dd; }
+
+/* Bieżnia bez pochylni: przycisk zmiany odcinka zajmuje całą szerokość. */
+.controls.no-incline { grid-template-columns: 1fr 1.6fr 1fr; }
+.controls.no-incline #c-skip { grid-column: 1 / -1; }
+
+/* ---------- zapisy techniczne ---------- */
+.trace-list { display: grid; gap: 8px; }
+.trace {
+  display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto;
+  gap: 2px 10px; align-items: center; text-align: left;
+  background: var(--bg2); border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 12px; color: var(--fg); width: 100%;
+}
+.trace:active { background: var(--card); }
+.trace .nm { font-weight: 600; font-size: 14px; }
+.trace .dt { grid-column: 1; color: var(--dim); font-size: 12px; }
+.trace .dl { grid-column: 2; grid-row: 1 / 3; color: var(--accent2); font-size: 13px; font-weight: 600; }
+
+/* ---------- wersja i historia zmian ---------- */
+/* Bez odstępu w kontenerze — inaczej „Zip" i „Run" rozjeżdżają się na dwa słowa. */
+.brand {
+  background: none; border: 0; padding: 0; color: var(--fg);
+  display: inline-flex; align-items: baseline;
+}
+.brand em {
+  font-style: normal; font-size: 11px; font-weight: 600; color: var(--dim);
+  background: var(--bg2); border: 1px solid var(--line);
+  border-radius: 999px; padding: 2px 7px; letter-spacing: 0; margin-left: 7px;
+}
+.brand:active em { color: var(--accent2); border-color: var(--accent); }
+
+.cl-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.cl-head b { font-size: 17px; }
+.cl-date { color: var(--dim); font-size: 12px; margin-left: auto; }
+.cl-now {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700;
+  background: var(--accent); color: #180a03; border-radius: 999px; padding: 2px 8px;
+}
+.cl-title { font-weight: 600; margin-bottom: 8px; }
+.cl-changes { margin: 0; padding-left: 18px; color: var(--dim); font-size: 14px; }
+.cl-changes li { margin-bottom: 6px; }
+.cl-changes li:last-child { margin-bottom: 0; }
+
+/* Trwa zmiana prędkości przed kolejnym odcinkiem — pas robi już co innego,
+   niż odlicza zegar, więc pasek musi to wyraźnie powiedzieć. */
+
+/* ---------- ekran treningu w orientacji poziomej ---------- */
+/* Telefon położony na bok ma około 375 px wysokości — pionowa kolumna nie ma
+   szans się zmieścić, a przewijanie ekranu w trakcie biegu nie wchodzi w grę.
+   Ekran treningu przestawia się więc na dwie kolumny: po lewej pierścień
+   z nazwą odcinka, po prawej liczby i sterowanie.
+   Pozostałe widoki zostają bez zmian — to listy, które normalnie się przewijają. */
+@media (orientation: landscape) and (max-height: 560px) {
+  body:has(#view-run.active) { padding-bottom: 0; }
+  /* Pasek górny i zakładki oddają miejsce — w trakcie biegu i tak się ich
+     nie używa, a każdy piksel wysokości jest tu na wagę złota. */
+  body:has(#view-run.active) #topbar,
+  body:has(#view-run.active) #tabs { display: none; }
+  body:has(#view-run.active) main { padding: 8px 14px 0; }
+
+  /* W poziomie nagłówek siedzi w lewej kolumnie, więc ikona zakotwiczona
+     do niego lądowała na środku ekranu. Kotwiczymy ją do całego widoku,
+     żeby trafiła w prawy górny róg. */
+  #view-run.active { position: relative; }
+  #view-run.active .run-head { position: static; }
+  #view-run.active .mode-toggle { right: 0; top: 0; }
+
+  #view-run.active {
+    display: grid;
+    grid-template-columns: minmax(0, 42%) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    column-gap: 16px;
+    height: calc(100vh - 16px);
+  }
+
+  /* Prawa kolumna jako jeden blok wyśrodkowany w pionie. Gdy jej elementy
+     były osobnymi wierszami siatki, rozciągała je wysokość pierścienia obok
+     i odstępy między nimi robiły się ogromne. */
+  /* Selektor celowo bardziej swoisty niż bazowe .run-side { display: contents },
+     które stoi w pliku niżej i inaczej by tę regułę nadpisało. */
+  /* Ten sam wiersz co pierścień, żeby obie kolumny centrowały się względem
+     tego samego pasa — inaczej prawa liczy środek z całej wysokości, lewa
+     tylko spod nagłówka, i układ wychodzi przekrzywiony. */
+  #view-run.active .run-side {
+    grid-column: 2; grid-row: 2;
+    display: flex; flex-direction: column; justify-content: center;
+    min-height: 0;
+  }
+
+  /* Nagłówek idzie do prawej kolumny — tam jest wolne miejsce, a lewa oddaje
+     całą wysokość pierścieniowi, który jest tu najważniejszy. */
+  .run-head { grid-column: 2; grid-row: 1; margin: 0 0 4px; text-align: left; padding-right: 44px; }
+  .kind { padding: 0; }
+  .seg-label { font-size: 18px; }
+  .kind { font-size: 10px; }
+
+  /* Pierścień ogranicza wysokość ekranu, nie szerokość kolumny — stąd vh. */
+  /* Trzy ograniczenia naraz: szerokość własnej kolumny, wysokość ekranu
+     i oddech przy krawędziach. Bez pierwszego pierścień wychodził poza
+     kolumnę i wchodził pod prawą. */
+  .ring-wrap {
+    grid-column: 1; grid-row: 1 / -1; margin: 0 auto; align-self: center;
+    width: min(100%, calc(100vh - 72px));
+  }
+  .segtime { font-size: 44px; }
+  .ring-sub { font-size: 9px; }
+
+  .speed-block { margin: 0 0 6px; }
+  .speed-actual { font-size: 40px; }
+  .speed-actual small { font-size: 14px; }
+  /* „cel" jest odczytywany tak samo często jak dystans i kalorie, więc dostaje
+     ten sam rozmiar co wiersz pod spodem. */
+  .speed-target { font-size: 21px; margin-top: 4px; }
+  .speed-target b { font-size: 26px; }
+  .mode { font-size: 11px; }
+
+  /* W poziomie szerokosci jest az nadto, a wysokosci brakuje - kafelki ida
+     w jeden rzad zamiast w dwa. To dokladnie te trzydziesci pikseli, ktorych
+     brakowalo, zeby przycisk zatrzymania zmiescil sie na ekranie. */
+  .tiles {
+    gap: 6px; margin-bottom: 6px;
+    grid-template-columns: repeat(6, 1fr);
+  }
+  .tile { padding: 5px 4px; }
+  .tv { font-size: 16px; }
+  .tl { font-size: 9px; }
+
+  .next { margin-bottom: 6px; padding: 6px 10px; font-size: 13px; }
+  .controls { gap: 6px; margin-bottom: 6px; }
+  .ctl { padding: 9px 4px; font-size: 14px; }
+  .ctl small { font-size: 9px; }
+  #c-stop { margin: 0 0 6px; padding: 11px; font-size: 15px; }
+  .run-msg { font-size: 12px; min-height: 0; }
+}
+
+/* ---------- tryb kompaktowy ekranu treningu ---------- */
+/* Sterowanie odbywa się z panelu bieżni, więc ekran ma jedynie informować.
+   Liczby, na które patrzy się w biegu — czas do końca odcinka i prędkość —
+   dostają tyle miejsca, ile się da; reszta schodzi do jednego wiersza. */
+
+/* W pionie kontener nie istnieje dla układu; w poziomie staje się kolumną. */
+.run-side { display: contents; }
+
+/* Dystans i kalorie to liczby, na które zerka się w biegu - muszą być
+   czytelne z odległości ramienia, nie tylko obecne. */
+.mini {
+  /* Wiersz łamał się w środku pary "zostało 11:42" i liczba lądowała sama
+     w drugiej linii. Każda para jest osobnym elementem, więc zawija się
+     w całości albo wcale. */
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 18px;
+  color: var(--dim); font-size: 22px;
+  font-variant-numeric: tabular-nums; margin-bottom: 12px;
+}
+.mini b { color: var(--fg); font-weight: 700; font-size: 26px; }
+
+.run-foot { display: flex; gap: 8px; margin-bottom: 10px; }
+.run-foot button { flex: 1; padding: 11px 8px; font-size: 14px; }
+
+/* Co znika w którym trybie */
+#view-run.compact .tiles,
+#view-run.compact .controls,
+#view-run.compact #c-stop { display: none; }
+
+/* Stopka zostaje w obu trybach — to w niej siedzi przełącznik, więc jej
+   ukrycie robiło z przejścia do pełnego panelu drogę w jedną stronę.
+   W pełnym trybie znika z niej tylko „Zakończ trening", bo dubluje
+   duży przycisk ZATRZYMAJ. */
+#view-run:not(.compact) .mini,
+#view-run:not(.compact) #btn-end { display: none; }
+#view-run:not(.compact) .run-foot { display: none; }
+
+/* Pierścień jest tu głównym elementem, więc dostaje więcej miejsca niż
+   w trybie pełnym — to on zastępuje pasek postępu. */
+#view-run.compact .ring-wrap { width: min(74vw, 300px); margin: 8px auto 10px; }
+#view-run.compact .segtime { font-size: 56px; line-height: 1; }
+#view-run.compact .ring-sub { font-size: 11px; }
+#view-run.compact .speed-actual { font-size: 68px; }
+#view-run.compact .speed-actual small { font-size: 20px; }
+#view-run.compact .speed-block { margin-bottom: 16px; }
+#view-run.compact .seg-label { font-size: 24px; }
+
+/* Tryb kompaktowy w orientacji poziomej: czas po lewej, prędkość po prawej,
+   reszta w wąskim pasie pod spodem. */
+@media (orientation: landscape) and (max-height: 560px) {
+  /* Czysty podział: po lewej wyłącznie pierścień z nazwą odcinka, po prawej
+     wszystko pozostałe. Wcześniej wiersz skrótowy i przyciski rozciągały się
+     pod obiema kolumnami, przez co ekran rozpadał się na trzy strefy. */
+  #view-run.compact.active { grid-template-columns: minmax(0, 40%) minmax(0, 1fr); }
+  /* Bez tego ograniczenia szerokość 74vw z układu pionowego dałaby tu koło
+     na pół ekranu i wypchnęła resztę poza widok. */
+  /* Pierścień zajmuje całą lewą kolumnę pod nazwą odcinka. Bez ograniczenia
+     szerokości wziąłby wartość z układu pionowego i zająłby pół ekranu. */
+  #view-run.compact .ring-wrap {
+    grid-column: 1; grid-row: 1 / -1; margin: 0 auto; align-self: center;
+    width: min(100%, calc(100vh - 64px));
+  }
+  #view-run.compact .segtime { font-size: 62px; }
+  #view-run.compact .ring-sub { font-size: 9px; }
+
+  #view-run.compact .speed-block { margin: 0 0 10px; }
+  #view-run.compact .speed-actual { font-size: 56px; }
+  #view-run.compact .mini { margin-bottom: 12px; font-size: 21px; }
+  #view-run.compact .mini b { font-size: 26px; }
+  #view-run.compact .next { margin-bottom: 10px; }
+  #view-run.compact .run-foot { margin-bottom: 0; }
+
+}
+
+/* W pionie tryb kompaktowy ma mało elementów, więc bez tego dolna trzecia
+   część ekranu zostawała pusta. Duże liczby są odsuwane automatycznymi
+   marginesami na środek wolnej przestrzeni. */
+@media (orientation: portrait) {
+  #view-run.compact.active {
+    display: flex; flex-direction: column;
+    min-height: calc(100vh - 150px);
+  }
+  #view-run.compact .ring-wrap { margin-top: auto; }
+  #view-run.compact .speed-block { margin-bottom: auto; }
+
+  /* Wiersz "Dalej" i przycisk końca treningu nosiły rozmiary z trybu
+     pełnego, gdzie konkurują z sześcioma kafelkami i sześcioma przyciskami
+     sterowania. W pionowym trybie kompaktowym są jedynymi elementami pod
+     prędkością i zostawało pod nimi ponad sześćdziesiąt pikseli pustki. */
+  #view-run.compact .next { font-size: 18px; padding: 14px; }
+  #view-run.compact .run-foot button { font-size: 18px; padding: 16px 8px; }
+}
+
+/* ---------- rozwijane wpisy historii ---------- */
+/* Lista ma zostać listą — szczegóły pokazują się dopiero po dotknięciu wpisu. */
+.hist { display: block; cursor: pointer; }
+.hist-top { display: grid; grid-template-columns: 1fr auto; gap: 4px; }
+.hist-det { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.hist.open .hist-det { display: block; }
+.hist-top::after {
+  content: '⌄'; position: absolute; right: 14px; bottom: 8px;
+  color: var(--dim); font-size: 13px; line-height: 1;
+}
+.hist { position: relative; }
+.hist.open .hist-top::after { content: '⌃'; }
+
+.hist-facts {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 8px; margin-bottom: 4px;
+}
+.hist-facts > div {
+  background: var(--bg2); border: 1px solid var(--line); border-radius: 9px;
+  padding: 7px 9px;
+}
+.hist-facts span {
+  display: block; font-size: 10px; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--dim);
+}
+.hist-facts b { font-size: 15px; font-variant-numeric: tabular-nums; }
+
+.hist-cmp { margin-top: 10px; font-size: 13px; color: var(--dim); }
+.hist-cmp b { color: var(--fg); }
+.hist-cmp b.lepiej { color: var(--ok); }
+.hist-cmp b.gorzej { color: var(--warn); }
+
+/* Miniatura przebiegu prędkości — kształt, nie wartości. */
+.spark {
+  display: flex; align-items: flex-end; gap: 1px; height: 40px;
+  margin-bottom: 12px; overflow: hidden;
+}
+.spark i { flex: 1 1 0; min-width: 1px; background: var(--accent); border-radius: 1px 1px 0 0; opacity: .8; }
+
+/* ---------- kreator planu ---------- */
+/* Pole tekstowe jest jedyne w całej aplikacji - reszta danych wchodzi
+   suwakami i przełącznikami, bo na bieżni nikt nie chce pisać. */
+.field input[type=text] {
+  width: 100%; box-sizing: border-box; background: var(--bg2); color: var(--fg);
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+  font-size: 15px; font-family: inherit;
+}
+.field input[type=text]::placeholder { color: var(--dim); }
+/* Odznaka planu własnego na liście - odróżnia go od piętnastu wbudowanych. */
+.plan .own {
+  font-size: 11px; padding: 2px 8px; border-radius: 999px; margin-left: 8px;
+  background: var(--bg2); border: 1px solid var(--line); color: var(--dim);
+  font-weight: 600; letter-spacing: 0; text-transform: none;
+}
+
+/* ---------- ulubione ---------- */
+.head-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.fav-toggle { flex: 0 0 auto; }
+.fav-toggle[aria-pressed="true"] {
+  background: var(--accent); border-color: var(--accent); color: #180a03;
+}
+/* Gwiazdka na karcie planu jest tylko znakiem, nie przyciskiem - karta sama
+   w sobie jest przyciskiem, a przycisk w przycisku to nieprawidłowy HTML. */
+.plan .fav { color: var(--accent); margin-right: 6px; }
+
+/* ---------- miniatura profilu na karcie planu ---------- */
+/* Ten sam wykres co w szczegółach planu, tylko niski. Słupki są węższe niż
+   piksel przy planie z trzydziestoma odcinkami, więc min-width zostaje. */
+.chart.mini { height: 26px; margin: 10px 0 0; gap: 1px; opacity: .9; border-radius: 3px; }
+.chart.mini .bar { border-radius: 1px 1px 0 0; }
+
+/* ---------- kolor bieżącego odcinka ---------- */
+/* Poświata za pierścieniem w kolorze odcinka. Z odległości ramienia widać,
+   czy trwa praca, czy przerwa, zanim zdąży się przeczytać nazwę. */
+#view-run { --puls: var(--work); }
+#view-run[data-kind="warmup"] { --puls: var(--warmup); }
+#view-run[data-kind="recovery"] { --puls: var(--recovery); }
+#view-run[data-kind="cooldown"] { --puls: var(--cooldown); }
+#view-run .kind { color: var(--puls); }
+.ring-wrap::before {
+  /* Ujemny z-index zamiast podnoszenia dzieci: .ring-center jest pozycjonowany
+     bezwzględnie i nadpisanie mu position rozsypywało wyśrodkowanie czasu. */
+  content: ''; position: absolute; inset: -18%; z-index: -1; pointer-events: none;
+  background: radial-gradient(closest-side, var(--puls), transparent 72%);
+  opacity: .2;
+}
+
+/* ---------- odliczanie do zmiany tempa ---------- */
+/* Przez ostatnie sekundy odcinka środek pierścienia liczy w dół zamiast
+   pokazywać czas. Cyfra zostaje biała: kolorowanie jej barwą nadchodzącego
+   odcinka mieszało się z poświatą wokół pierścienia, a przy okazji sprawiało,
+   że najważniejsza liczba na ekranie zmieniała wygląd co odcinek. Rodzaj
+   nadchodzącego odcinka i tak jest napisany pod spodem. */
+#view-run.odliczanie .segtime { font-size: 84px; line-height: 1; }
+#view-run.odliczanie.compact .segtime { font-size: 96px; }
+/* Bez jawnej kolumny siatka bierze szerokość od najszerszego dziecka, czyli
+   od samej cyfry — procentowe ograniczenie podpisu liczyło się wtedy od 141
+   pikseli i łamało go na dwie linie. */
+#view-run.odliczanie .ring-center { grid-template-columns: minmax(0, 1fr); }
+#view-run.odliczanie .ring-sub {
+  color: var(--fg); font-weight: 700; font-size: 14px;
+  text-transform: none; letter-spacing: 0; margin: 4px auto 0;
+  max-width: 82%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* W poziomie pierścień jest niższy, więc cyfra musi zejść razem z nim. */
+@media (orientation: landscape) and (max-height: 560px) {
+  #view-run.odliczanie .segtime,
+  #view-run.odliczanie.compact .segtime { font-size: 72px; }
+  #view-run.odliczanie .ring-sub { font-size: 12px; }
+}

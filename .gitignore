@@ -1,0 +1,15 @@
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+# Raporty diagnostyczne i zapisy treningów zostają lokalnie - repozytorium
+# jest publiczne, a te pliki opisują konkretne urządzenie i przebieg treningu.
+ziprun-*.txt
+ziprun-*.json
+
+# Zrzuty ekranu i zdjecia wrzucane do analizy zostaja lokalnie. Ukosnik na
+# poczatku ogranicza regule do glownego katalogu, wiec ikony aplikacji
+# w icons/ nadal sa wersjonowane.
+/*.jpg
+/*.jpeg
+/*.png
