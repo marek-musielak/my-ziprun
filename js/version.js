@@ -10,9 +10,18 @@
 // typu "to jeszcze nie jest wypchnięte, więc dopiszę do poprzedniej wersji" —
 // taki wyjątek raz już doprowadził do sześciu commitów pod jednym numerem.
 
-export const VERSION = '1.16.0';
+export const VERSION = '1.16.1';
 
 export const CHANGELOG = [
+  {
+    version: '1.16.1',
+    date: '2026-09-29',
+    title: 'Porządki w kodzie interfejsu',
+    changes: [
+      'Główny plik aplikacji, ponad 1300 linii, rozdzielony na moduły — po jednym na każdy widok. Działanie aplikacji się nie zmienia.',
+      'Nowy numer jest potrzebny, żeby telefon pobrał nowy zestaw plików w całości, a nie połowę starego i połowę nowego.',
+    ],
+  },
   {
     version: '1.16.0',
     date: '2026-09-29',

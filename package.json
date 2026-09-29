@@ -1,0 +1,12 @@
+{
+  "name": "ziprun",
+  "private": true,
+  "description": "Plany treningowe z automatycznym sterowaniem bieżnią przez Bluetooth.",
+  "scripts": {
+    "test": "node --test",
+    "serve": "node tools/serve.js 8787"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

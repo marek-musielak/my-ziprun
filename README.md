@@ -171,7 +171,18 @@ korekta ±0,5 km/h w trakcie treningu działa na nim normalnie.
 ```
 index.html            interfejs (widoki jako sekcje)
 app.css               ciemny motyw, duża typografia do czytania w ruchu
-js/app.js             nawigacja, renderowanie, spięcie całości
+js/app.js             punkt wejścia: import widoków, start aplikacji
+js/ui/core.js         wspólny stan, bieżnia, silnik, rejestrator, drobne narzędzia
+js/ui/nav.js          przełączanie widoków i gest wstecz
+js/ui/charts.js       wykresy profilu i listy odcinków
+js/ui/plan-list.js    lista planów, szczegóły, ulubione, start treningu
+js/ui/creator.js      kreator własnych planów
+js/ui/run.js          ekran treningu i domknięcie zapisu
+js/ui/summary.js      podsumowanie treningu
+js/ui/history.js      historia i lista zapisów technicznych
+js/ui/profile.js      profil, ustawienia, kopia danych
+js/ui/device.js       zakładka Bieżnia: połączenie, diagnostyka, testy
+js/ui/changelog.js    numer wersji i historia zmian
 js/plans.js           definicje planów i przeliczanie kotwic wysiłku
 js/engine.js          maszyna stanów treningu, rampowanie, zapowiedzi
 js/speech.js          synteza mowy i blokada wygaszania ekranu
@@ -186,7 +197,38 @@ js/ble/manager.js     połączenie, dobór sterownika, rampa prędkości
 sw.js                 service worker (działanie offline)
 tools/serve.js        lokalny serwer do testów
 tools/make-icons.js   generator ikon PWA
+tests/                testy automatyczne (node --test)
 ```
+
+## Testy
+
+```bash
+npm test          # albo: node --test
+```
+
+Wymagają tylko Node 20 lub nowszego — bez `npm install`, bez zależności.
+Wszystko, co potrzebuje przeglądarki albo Bluetooth, zastępują atrapy
+z [`tests/helpers.mjs`](tests/helpers.mjs): pamięć w obiekcie zamiast
+localStorage, zegar przesuwany ręcznie i bieżnia, która tylko zapisuje
+komendy. Cały zestaw trwa około sekundy.
+
+| Plik | Co pilnuje |
+|---|---|
+| `engine.test.mjs` | rampa rusza tyle przed granicą, ile trwa zmiana; po pauzie i stopie żadna komenda prędkości nie dociera do pasa; kluczyk przerywa trening; przejmowanie tempa z panelu z jego pięcioma warunkami i granicami 0,5–1,5 |
+| `generator.test.mjs` | każda kombinacja typu, intensywności i długości trwa co do sekundy tyle, ile zamówiono; rozgrzewka wolniejsza od treningu; przerwy tylko w interwałach |
+| `plans.test.mjs` | wszystkie plany wbudowane rozwiązują się poprawnie; kotwice rosną; plan z FitShow nie zależy od profilu |
+| `storage.test.mjs` | import scala zamiast zastępować i nie duplikuje; naprawy starych planów; limit zapisów technicznych przy zapełnionej pamięci |
+| `ftms.test.mjs` | parsowanie ramek Treadmill Data i Feature, w tym odwrócony bit „More Data" |
+| `trace.test.mjs` | zapis techniczny: throttling pomiarów, hamowanie po treningu, raport i jego odtworzenie z pamięci |
+| `charts.test.mjs` | uśrednianie przebiegu i proporcje wykresu |
+| `spojnosc.test.mjs` | każdy moduł jest na liście service workera, każdy `$('id')` ma element w `index.html`, każdy import ma swój eksport, wersja ma wpis w historii zmian |
+
+Ostatni plik łapie dokładnie tę klasę błędów, która w 1.7.x wysypała
+trening na telefonie — na komputerze jej nie widać, bo tam pliki przychodzą
+z sieci, a nie z pamięci offline.
+
+Testy nie zastępują próby na bieżni: sprawdzają logikę, nie to, czy
+konkretny pas posłucha komendy.
 
 ## Własne plany
 
