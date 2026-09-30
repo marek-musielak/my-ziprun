@@ -7,7 +7,7 @@
 import { VERSION } from '../version.js';
 import { fmtTime } from '../plans.js';
 import { esc, plural } from '../tekst.js';
-import { chartHtml } from '../ui/charts.js';
+import { chartHtml, legendaHtml } from '../ui/charts.js';
 import * as m from './model.js';
 import { adresPlanu } from './link.js';
 
@@ -184,6 +184,7 @@ function odswiez() {
   if (!w.ok) {
     $('ed-meta').innerHTML = '<span>Podsumowanie pojawi się, gdy wszystkie pola będą poprawne</span>';
     $('ed-chart').innerHTML = '';
+    $('ed-legend').innerHTML = '';
     $('ed-linie').textContent = '';
     return;
   }
@@ -200,6 +201,7 @@ function odswiez() {
     odcinki.map((o) => ({ kind: o.kind, label: o.label, speed: o.v, duration: o.t })),
     Math.max(...odcinki.map((o) => o.v), 1),
   );
+  $('ed-legend').innerHTML = legendaHtml(odcinki);
   $('ed-linie').textContent = odcinki.map(m.liniaOdcinka).join('\n');
 }
 

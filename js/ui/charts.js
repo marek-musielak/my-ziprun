@@ -22,14 +22,31 @@ export function listaSegmentow(segments) {
 
 export function chartHtml(segments, maxSpeed) {
   // Szerokość słupka proporcjonalna do czasu, wysokość do prędkości.
-  const total = segments.reduce((a, s) => a + s.duration, 0);
+  // Słupek dostaje udział w wolnym miejscu (flex-grow = czas, podstawa 0),
+  // a nie procent całości: przy kilkudziesięciu słupkach odstępy po 1 px
+  // wypychały sumę procentów poza kartę i ostatni odcinek — schłodzenie —
+  // był ucinany. Minimalną szerokość, żeby krótki odcinek został widoczny,
+  // daje CSS (min-width).
   return segments
     .map((s) => {
       const h = Math.max(4, Math.round((s.speed / maxSpeed) * 100));
-      const w = Math.max(0.4, (s.duration / total) * 100);
-      return '<div class="bar ' + esc(s.kind) + '" style="height:' + h + '%;flex:0 0 ' + w + '%" ' +
+      return '<div class="bar ' + esc(s.kind) + '" style="height:' + h + '%;flex:' + s.duration + ' 1 0" ' +
              'title="' + esc(s.label) + ' — ' + esc(s.speed) + ' km/h"></div>';
     })
+    .join('');
+}
+
+// Kolejność i nazwy w legendzie — jak na wykresie od rozgrzewki do schłodzenia.
+const LEGENDA = [
+  ['warmup', 'rozgrzewka'], ['work', 'praca'], ['sprint', 'sprint'],
+  ['recovery', 'przerwa'], ['cooldown', 'schłodzenie'],
+];
+
+/** Legenda tylko z rodzajów, które naprawdę są w planie — bez „pracy", gdy jej nie ma. */
+export function legendaHtml(segments) {
+  const sa = new Set(segments.map((s) => s.kind));
+  return LEGENDA.filter(([kind]) => sa.has(kind))
+    .map(([kind, nazwa]) => '<span><i class="sw ' + kind + '"></i>' + nazwa + '</span>')
     .join('');
 }
 

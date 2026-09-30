@@ -8,7 +8,7 @@ import {
   czyUlubiony, wszystkiePlany, znajdzPlan, toast, esc,
 } from './core.js';
 import { goto } from './nav.js';
-import { chartHtml, listaSegmentow } from './charts.js';
+import { chartHtml, legendaHtml, listaSegmentow } from './charts.js';
 import { przygotujEkranTreningu } from './run.js';
 
 let levelFilter = 'all';
@@ -174,8 +174,7 @@ function pokazPlan(plan, { podglad = false } = {}) {
 
   const maxSpeed = Math.max(...r.segments.map((s) => s.speed), 1);
   $('pd-chart').innerHTML = chartHtml(r.segments, maxSpeed);
-  // Sprinty mają tylko plany z edytora — reszcie legenda się nie wydłuża.
-  $('pd-leg-sprint').classList.toggle('hidden', !r.segments.some((s) => s.kind === 'sprint'));
+  $('pd-legend').innerHTML = legendaHtml(r.segments);
 
   $('pd-segments').innerHTML = listaSegmentow(r.segments);
 

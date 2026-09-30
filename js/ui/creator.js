@@ -5,7 +5,7 @@ import { TYPY, INTENSYWNOSCI, MIN_MINUT, MAX_MINUT, generujPlan } from '../gener
 import * as store from '../storage.js';
 import { $, els, stan, toast, plural } from './core.js';
 import { goto, naWejscie } from './nav.js';
-import { chartHtml, listaSegmentow } from './charts.js';
+import { chartHtml, legendaHtml, listaSegmentow } from './charts.js';
 import { renderPlans, openPlan } from './plan-list.js';
 
 const kreator = { typ: 'fat', minuty: 30, intensywnosc: 'srednia' };
@@ -57,6 +57,7 @@ export function odswiezKreator() {
     })(),
   ].map((x) => '<span>' + x + '</span>').join('');
   $('kr-chart').innerHTML = chartHtml(r.segments, Math.max(...predkosci, 1));
+  $('kr-legend').innerHTML = legendaHtml(r.segments);
   $('kr-segments').innerHTML = listaSegmentow(r.segments);
   // Nazwa domyślna jako podpowiedź, nie jako wpisana wartość — pusty formularz
   // zostaje pusty, a i tak widać, jak plan się będzie nazywał.

@@ -2,7 +2,7 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { downsample, chartHtml, listaSegmentow } from '../js/ui/charts.js';
+import { downsample, chartHtml, legendaHtml, listaSegmentow } from '../js/ui/charts.js';
 
 describe('downsample', () => {
   test('krótki przebieg zostaje bez zmian', () => {
@@ -43,8 +43,14 @@ const ODCINKI = [
 describe('chartHtml', () => {
   test('jeden słupek na odcinek, szerokość proporcjonalna do czasu', () => {
     const html = chartHtml(ODCINKI, 10);
-    const szer = [...html.matchAll(/flex:0 0 ([\d.]+)%/g)].map((m) => +m[1]);
-    assert.deepEqual(szer, [25, 50, 25]);
+    const udzialy = [...html.matchAll(/flex:(\d+) 1 0/g)].map((m) => +m[1]);
+    assert.deepEqual(udzialy, [300, 600, 300]);
+  });
+
+  test('słupki mogą się kurczyć — odstępy nie wypchną ostatniego poza kartę', () => {
+    // Stary zapis „flex:0 0 N%" nie kurczył się, więc przy 40 słupkach i odstępach
+    // po 1 px schłodzenie na końcu było ucinane.
+    assert.doesNotMatch(chartHtml(ODCINKI, 10), /flex:0 0/);
   });
 
   test('wysokość proporcjonalna do prędkości', () => {
@@ -52,9 +58,28 @@ describe('chartHtml', () => {
     assert.deepEqual(wys, [50, 100, 50]);
   });
 
-  test('bardzo krótki odcinek zostaje widoczny', () => {
+  test('udział słupka to jego czas, także przy bardzo krótkim odcinku', () => {
+    // Widoczność krótkiego odcinka zapewnia CSS (min-width), nie liczba w stylu.
     const html = chartHtml([{ ...ODCINKI[1], duration: 1 }, { ...ODCINKI[0], duration: 5000 }], 10);
-    assert.match(html, /flex:0 0 0\.4%/);
+    assert.deepEqual([...html.matchAll(/flex:(\d+) 1 0/g)].map((m) => +m[1]), [1, 5000]);
+  });
+});
+
+describe('legendaHtml', () => {
+  const nazwy = (html) => [...html.matchAll(/<\/i>([^<]+)</g)].map((m) => m[1]);
+
+  test('tylko rodzaje, które występują w planie, w kolejności wykresu', () => {
+    assert.deepEqual(nazwy(legendaHtml(ODCINKI)), ['rozgrzewka', 'praca', 'schłodzenie']);
+  });
+
+  test('bez pracy w planie nie ma jej w legendzie', () => {
+    const bez = [{ kind: 'warmup' }, { kind: 'sprint' }, { kind: 'recovery' }, { kind: 'cooldown' }];
+    assert.deepEqual(nazwy(legendaHtml(bez)), ['rozgrzewka', 'sprint', 'przerwa', 'schłodzenie']);
+  });
+
+  test('kwadracik ma klasę rodzaju, a nieznany rodzaj nic nie wstawia', () => {
+    assert.match(legendaHtml([{ kind: 'sprint' }]), /class="sw sprint"/);
+    assert.equal(legendaHtml([{ kind: '"><img src=x onerror=alert(1)>' }]), '');
   });
 });
 

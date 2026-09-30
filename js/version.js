@@ -10,9 +10,18 @@
 // typu "to jeszcze nie jest wypchnięte, więc dopiszę do poprzedniej wersji" —
 // taki wyjątek raz już doprowadził do sześciu commitów pod jednym numerem.
 
-export const VERSION = '1.21.4';
+export const VERSION = '1.21.5';
 
 export const CHANGELOG = [
+  {
+    version: '1.21.5',
+    date: '2026-09-30',
+    title: 'Schłodzenie na wykresie i legenda z tego, co w planie',
+    changes: [
+      'Przy planie z kilkudziesięcioma odcinkami ostatni słupek wykresu — schłodzenie — był ucinany poza kartą na wąskim ekranie. Słupki dzielą teraz wolne miejsce proporcjonalnie do czasu, więc odstępy między nimi niczego nie wypychają.',
+      'Legenda pod wykresem pokazuje tylko rodzaje odcinków, które naprawdę są w planie — bez „pracy”, gdy jej nie ma. Dotyczy podglądu planu, kreatora i edytora.',
+    ],
+  },
   {
     version: '1.21.4',
     date: '2026-09-30',
