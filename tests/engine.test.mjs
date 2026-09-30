@@ -1,6 +1,6 @@
 // Silnik treningu — tu siedzą zabezpieczenia, które chronią biegacza na pasie.
 
-import { test, describe, beforeEach, afterEach } from 'node:test';
+import { test, describe, beforeEach, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { instalujZegar, SztucznaBieznia, dokonczObietnice } from './helpers.mjs';
 import { WorkoutEngine, STATE, rampSeconds, SCHLODZENIE } from '../js/engine.js';
@@ -569,5 +569,194 @@ describe('sprint', () => {
     engine.adjustSpeed(+0.5);
     await dokonczObietnice();
     assert.equal(tm.rampy.at(-1), 16.2);
+  });
+});
+
+describe('zwalnianie ze sprintu', () => {
+  // Skok o 6 km/h: rampa trwa 8,15 s, więc zwykły odcinek zwalnia 8,15 s przed końcem.
+  const skok = rampSeconds(6);
+  const plan = (rodzaj) => ({
+    id: 'sprint', name: 'Sprint', segments: [
+      { t: 30, s: 15, kind: rodzaj, label: 'Szybko' },
+      { t: 30, s: 9, kind: 'recovery', label: 'Przerwa' },
+    ],
+  });
+
+  /** Przewija do chwili, gdy zostaje `zostalo` sekund, i podaje, czy rampa już ruszyła. */
+  async function czyRuszylo(rodzaj, zostalo) {
+    await uruchom({ plan: plan(rodzaj), followManual: false });
+    const przed = tm.rampy.length;
+    przewin(30 - zostalo);
+    return tm.rampy.length > przed && tm.rampy.at(-1) === 9;
+  }
+
+  test('zwykły odcinek zwalnia tyle przed końcem, ile trwa rampa', async () => {
+    assert.equal(await czyRuszylo('work', skok + 0.5), false, 'za wcześnie');
+    assert.equal(await czyRuszylo('work', skok - 0.5), true);
+  });
+
+  test('sprint zwalnia dwie sekundy później niż zwykły odcinek', async () => {
+    const zostalo = skok - 2;
+    assert.equal(await czyRuszylo('sprint', zostalo + 0.5), false, 'jeszcze biegnie sprint');
+    assert.equal(await czyRuszylo('sprint', zostalo - 0.5), true);
+  });
+
+  test('w miejscu, gdzie zwykły odcinek już zwalnia, sprint jeszcze nie', async () => {
+    const zostalo = skok - 0.5;
+    assert.equal(await czyRuszylo('work', zostalo), true);
+    assert.equal(await czyRuszylo('sprint', zostalo), false);
+  });
+
+  test('rozpędzanie przed sprintem nie jest opóźniane', async () => {
+    // Przerwa 9 -> sprint 15: rampa w górę, wyprzedzenie bez zmian.
+    const wgore = {
+      id: 'wgore', name: 'W górę', segments: [
+        { t: 30, s: 9, kind: 'recovery', label: 'Przerwa' },
+        { t: 30, s: 15, kind: 'sprint', label: 'Szybko' },
+      ],
+    };
+    await uruchom({ plan: wgore, followManual: false });
+    const przed = tm.rampy.length;
+    przewin(30 - (skok - 0.5));
+    assert.ok(tm.rampy.length > przed && tm.rampy.at(-1) === 15);
+  });
+
+  test('sprint przechodzący w sprint wolniejszy też zwalnia później', async () => {
+    const dwa = {
+      id: 'dwa', name: 'Dwa sprinty', segments: [
+        { t: 30, s: 15, kind: 'sprint', label: 'Sprint 1' },
+        { t: 30, s: 9, kind: 'sprint', label: 'Sprint 2' },
+      ],
+    };
+    await uruchom({ plan: dwa, followManual: false });
+    const przed = tm.rampy.length;
+    przewin(30 - (skok - 1));
+    assert.equal(tm.rampy.length, przed, 'rampa nie powinna jeszcze ruszyć');
+    przewin(1.5);
+    assert.ok(tm.rampy.length > przed);
+  });
+
+  test('sprint na sam koniec planu niczego nie zmienia', async () => {
+    const jeden = { id: 'jeden', name: 'Jeden', segments: [{ t: 30, s: 15, kind: 'sprint', label: 'Szybko' }] };
+    await uruchom({ plan: jeden, followManual: false });
+    przewin(31);
+    assert.equal(engine.state, STATE.FINISHED);
+  });
+});
+
+describe('odliczanie na starcie', () => {
+  /**
+   * Podrobiony głos: zapisuje kolejność zdarzeń, a zapowiedź kończy się dopiero, gdy test
+   * to zdecyduje — tak jak prawdziwa synteza mowy, która trwa ułamek sekundy.
+   */
+  function glos() {
+    const zdarzenia = [];
+    let zakoncz;
+    const zapowiedz = new Promise((r) => { zakoncz = r; });
+    return {
+      zdarzenia,
+      zakonczZapowiedz: zakoncz,
+      glos: {
+        say: (t) => zdarzenia.push('say:' + t),
+        sayAndWait: (t) => { zdarzenia.push('zapowiedz:' + t); return zapowiedz; },
+      },
+    };
+  }
+
+  function silnikZGlosem(g) {
+    tm = new SztucznaBieznia({ speed: false }); // tryb prowadzenia: bez czekania na pas
+    engine = new WorkoutEngine(tm, g.glos);
+    engine.load(PLAN, { ...DEFAULT_PROFILE });
+    engine.on('tick', (d) => { if (d.countdown != null) g.zdarzenia.push('tick:' + d.countdown); });
+  }
+
+  beforeEach(() => mock.timers.enable({ apis: ['setTimeout'] }));
+  afterEach(() => mock.timers.reset());
+
+  test('najpierw zapowiedź, dopiero po jej końcu odliczanie', async () => {
+    const g = glos();
+    silnikZGlosem(g);
+    const start = engine.start(2);
+    await dokonczObietnice();
+
+    // Na ekranie stoi liczba początkowa, a zapowiedź trwa.
+    assert.deepEqual(g.zdarzenia, ['tick:2', 'zapowiedz:Start za 2 sekundy']);
+    mock.timers.tick(10_000);
+    await dokonczObietnice();
+    assert.deepEqual(g.zdarzenia, ['tick:2', 'zapowiedz:Start za 2 sekundy'],
+      'odliczanie nie rusza, dopóki zapowiedź się nie skończy');
+
+    g.zakonczZapowiedz();
+    await dokonczObietnice();
+    mock.timers.tick(1000);
+    await dokonczObietnice();
+    assert.deepEqual(g.zdarzenia.slice(2), ['tick:1', 'say:1']);
+
+    mock.timers.tick(1000);
+    await start;
+    assert.equal(engine.state, STATE.RUNNING);
+  });
+
+  test('pierwsza liczba nie jest wypowiadana drugi raz', async () => {
+    const g = glos();
+    silnikZGlosem(g);
+    const start = engine.start(3);
+    await dokonczObietnice();
+    g.zakonczZapowiedz();
+    for (let k = 0; k < 3; k++) { await dokonczObietnice(); mock.timers.tick(1000); }
+    await start;
+    const wypowiedziane = g.zdarzenia.filter((z) => z.startsWith('say:') && /^say:\d$/.test(z));
+    assert.deepEqual(wypowiedziane, ['say:2', 'say:1']);
+  });
+
+  test('zapowiedź odmienia sekundy po polsku', async () => {
+    const teksty = [];
+    for (const n of [1, 2, 5, 12]) {
+      const g = glos();
+      silnikZGlosem(g);
+      engine.start(n);
+      await dokonczObietnice();
+      teksty.push(g.zdarzenia.find((z) => z.startsWith('zapowiedz:')));
+      await engine.abort();
+    }
+    assert.deepEqual(teksty, [
+      'zapowiedz:Start za 1 sekundę', 'zapowiedz:Start za 2 sekundy',
+      'zapowiedz:Start za 5 sekund', 'zapowiedz:Start za 12 sekund',
+    ]);
+  });
+
+  test('przerwanie w trakcie zapowiedzi nie uruchamia odliczania ani treningu', async () => {
+    const g = glos();
+    silnikZGlosem(g);
+    const start = engine.start(2);
+    await dokonczObietnice();
+    await engine.abort();
+
+    g.zakonczZapowiedz();
+    await dokonczObietnice();
+    mock.timers.tick(5000);
+    await start;
+
+    assert.equal(engine.state, STATE.ABORTED);
+    assert.ok(!g.zdarzenia.includes('tick:1'));
+  });
+
+  test('bez odliczania nie ma zapowiedzi', async () => {
+    const g = glos();
+    silnikZGlosem(g);
+    await engine.start(0);
+    assert.ok(!g.zdarzenia.some((z) => z.startsWith('zapowiedz:')));
+    assert.equal(engine.state, STATE.RUNNING);
+  });
+
+  test('bez głosu odliczanie działa jak dotąd', async () => {
+    tm = new SztucznaBieznia({ speed: false });
+    engine = new WorkoutEngine(tm, null);
+    engine.load(PLAN, { ...DEFAULT_PROFILE });
+    const start = engine.start(1);
+    await dokonczObietnice();
+    mock.timers.tick(1000);
+    await start;
+    assert.equal(engine.state, STATE.RUNNING);
   });
 });

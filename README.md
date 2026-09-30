@@ -112,7 +112,10 @@ stopami. Zabezpieczenia w kodzie:
   z 6 na 16 od razu.
 - **Zapowiedź wyprzedzająca** — zmiana jest ogłaszana głosem zanim nastąpi,
   a rozpędzanie zaczyna się przed końcem poprzedniego odcinka, żeby na starcie
-  interwału pas był już na docelowej prędkości.
+  interwału pas był już na docelowej prędkości. Zwalnianie ze sprintu zaczyna
+  się dwie sekundy później, żeby sprint nie kończył się wcześniej, niż zaplanowano.
+- **Start bez nakładania się głosu i odliczania** — najpierw pada cała zapowiedź
+  („Start za 5 sekund"), a odliczanie rusza dopiero po jej końcu.
 - **Limit prędkości i nachylenia z bieżni** — przy każdym połączeniu profil
   przyjmuje zakres, który bieżnia zgłasza w standardzie FTMS. Plan ani korekta
   nie wyjdą poza niego. Zakres domyślny sterownika, gdy odczyt się nie uda,

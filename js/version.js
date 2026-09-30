@@ -10,9 +10,29 @@
 // typu "to jeszcze nie jest wypchnięte, więc dopiszę do poprzedniej wersji" —
 // taki wyjątek raz już doprowadził do sześciu commitów pod jednym numerem.
 
-export const VERSION = '1.21.5';
+export const VERSION = '1.21.7';
 
 export const CHANGELOG = [
+  {
+    version: '1.21.7',
+    date: '2026-09-30',
+    title: 'Zapowiedź na starcie przed odliczaniem',
+    changes: [
+      'Na początku treningu głos mówił „Start za 5” i w tej samej chwili zaczynało się odliczanie. Po sekundzie padała kolejna liczba i ucinała niedokończoną zapowiedź, więc słychać było bałagan.',
+      'Teraz najpierw pada cała zapowiedź („Start za 5 sekund”), a odliczanie rusza dopiero po jej końcu. Pierwsza liczba nie jest wypowiadana drugi raz.',
+      'Jeśli synteza mowy nie zgłosi końca zapowiedzi, start czeka najwyżej sześć sekund.',
+    ],
+  },
+  {
+    version: '1.21.6',
+    date: '2026-09-30',
+    title: 'Sprint zwalnia dwie sekundy później',
+    changes: [
+      'Pas zaczynał zwalniać przed końcem odcinka tyle sekund, ile trwa cała zmiana prędkości: przy skoku o 6 km/h było to 8,15 s. Przy sprincie oznaczało to, że kilka ostatnich sekund biegłeś wolniej, niż zaplanowałeś.',
+      'Zwalnianie ze sprintu zaczyna się teraz o dwie sekundy później — na przykład 6,15 s przed końcem zamiast 8,15 s. Pas dochodzi do nowej prędkości dwie sekundy po granicy odcinków, już w wolniejszym odcinku.',
+      'Dotyczy tylko zwalniania ze sprintu. Zwykłe odcinki i rozpędzanie przed sprintem zostają bez zmian.',
+    ],
+  },
   {
     version: '1.21.5',
     date: '2026-09-30',

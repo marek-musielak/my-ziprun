@@ -21,14 +21,38 @@ export class Speech {
     speechSynthesis.addEventListener('voiceschanged', choose);
   }
 
-  say(text, { priority = false } = {}) {
-    if (!this.enabled || !this.available || !text) return;
-    if (priority) speechSynthesis.cancel();
+  _utterance(text) {
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'pl-PL';
     u.rate = this.rate;
     if (this.voice) u.voice = this.voice;
-    speechSynthesis.speak(u);
+    return u;
+  }
+
+  say(text, { priority = false } = {}) {
+    if (!this.enabled || !this.available || !text) return;
+    if (priority) speechSynthesis.cancel();
+    speechSynthesis.speak(this._utterance(text));
+  }
+
+  /**
+   * Mówi i czeka, aż zapowiedź się skończy. Bez tego następna zapowiedź z
+   * priorytetem ucina poprzednią w połowie zdania. Gdy głos jest wyłączony albo
+   * niedostępny, kończy od razu, a po maxMs kończy zawsze — zawieszony
+   * syntezator nie może zablokować startu treningu.
+   */
+  sayAndWait(text, { maxMs = 6000 } = {}) {
+    return new Promise((resolve) => {
+      if (!this.enabled || !this.available || !text) return resolve();
+      speechSynthesis.cancel();
+      const u = this._utterance(text);
+      let timer;
+      const done = () => { clearTimeout(timer); resolve(); };
+      u.onend = done;
+      u.onerror = done;
+      timer = setTimeout(done, maxMs);
+      speechSynthesis.speak(u);
+    });
   }
 
   beep(freq = 880, ms = 120) {

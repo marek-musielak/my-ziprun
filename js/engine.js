@@ -2,6 +2,7 @@
 // żeby zmiany prędkości były zapowiedziane i stopniowe.
 
 import { resolvePlan, fmtTime, przewyzszenie } from './plans.js';
+import { plural } from './tekst.js';
 
 const TICK_MS = 250;
 
@@ -25,6 +26,11 @@ export function rampSeconds(delta) {
 }
 
 const ANNOUNCE_LEAD_S = 10; // ile sekund przed segmentem leci zapowiedź
+
+// O tyle sekund później niż wynikałoby z czasu rampy zaczyna się zwalnianie ze
+// sprintu. Przy skoku o 6 km/h pas zaczynał zwalniać 8,15 s przed końcem sprintu,
+// czyli sprint kończył się kilka sekund wcześniej, niż zaplanowano.
+const SPRINT_ZWOLNIENIE_OPOZNIENIE_S = 2;
 
 // Krok przycisków ± — w sprincie drobniejszy, bo przy 18 km/h pół kilometra
 // na godzinę to już duża zmiana.
@@ -194,10 +200,21 @@ export class WorkoutEngine {
   async start(countdown = 5) {
     if (!this.plan) throw new Error('Nie wybrano planu.');
     this._setState(STATE.COUNTDOWN);
+    this._emit('tick', { countdown });
+    if (countdown > 0) {
+      // Najpierw zapowiedź, wypowiedziana do końca; dopiero potem odliczanie.
+      // Wcześniej pierwsza liczba padała po sekundzie i ucinała jeszcze niedokończone
+      // „Start za…”, a ekran odliczał już od pierwszej chwili.
+      await this.speech?.sayAndWait?.(
+        'Start za ' + countdown + ' ' + plural(countdown, 'sekundę', 'sekundy', 'sekund'));
+    }
     for (let i = countdown; i > 0; i--) {
       if (this.state !== STATE.COUNTDOWN) return; // anulowano
-      this._emit('tick', { countdown: i });
-      this.speech?.say(i === countdown ? 'Start za ' + i : String(i), { priority: true });
+      // Pierwsza liczba jest już na ekranie i została wypowiedziana w zapowiedzi.
+      if (i < countdown) {
+        this._emit('tick', { countdown: i });
+        this.speech?.say(String(i), { priority: true });
+      }
       await new Promise((r) => setTimeout(r, 1000));
     }
     if (this.state !== STATE.COUNTDOWN) return;
@@ -351,7 +368,12 @@ export class WorkoutEngine {
     if (delta < 0.2) return;
     // Startujemy dokładnie tyle przed granicą, ile potrwa sama zmiana — pas
     // dochodzi do celu w chwili, gdy zegar przechodzi na nowy odcinek.
-    const lead = Math.min(12, rampSeconds(delta));
+    // Wyjątek: zwalnianie ze sprintu zaczyna się SPRINT_ZWOLNIENIE_OPOZNIENIE_S
+    // później. Sprint ma być pobiegnięty do końca; pas dochodzi wtedy do celu
+    // tyle sekund po granicy, co przy wolniejszym odcinku jest bez znaczenia.
+    const opoznienie = this.segment.kind === 'sprint' && target < current
+      ? SPRINT_ZWOLNIENIE_OPOZNIENIE_S : 0;
+    const lead = Math.max(0, Math.min(12, rampSeconds(delta)) - opoznienie);
     if (this.segRemaining > lead) return;
     this._ramped = this.segIndex;
     // Ekran musi wiedzieć, że pas zmienia już prędkość, mimo że zegar odlicza
