@@ -193,7 +193,7 @@ function odswiez() {
   // Etykieta w każdej pastylce — sama liczba „23 m" nie mówi, co to jest.
   $('ed-meta').innerHTML = [
     ['czas', fmtTime(s.czasS)],
-    ['dystans', '~' + s.dystansKm.toFixed(2).replace('.', ',') + ' km'],
+    ['dystans', s.dystansKm.toFixed(2).replace('.', ',') + ' km'],
     ['wznios', Math.round(s.przewyzszenieM) + ' m'],
   ].map(([etykieta, wartosc]) => '<span>' + etykieta + ' <b>' + wartosc + '</b></span>').join('');
   $('ed-chart').innerHTML = chartHtml(

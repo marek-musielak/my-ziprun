@@ -10,9 +10,18 @@
 // typu "to jeszcze nie jest wypchnięte, więc dopiszę do poprzedniej wersji" —
 // taki wyjątek raz już doprowadził do sześciu commitów pod jednym numerem.
 
-export const VERSION = '1.21.2';
+export const VERSION = '1.21.3';
 
 export const CHANGELOG = [
+  {
+    version: '1.21.3',
+    date: '2026-09-30',
+    title: 'Bursztynowa praca',
+    changes: [
+      'Kolor pracy jest bardziej żółty — bursztynowy zamiast pomarańczowego — na wykresach, liście odcinków i ekranie treningu.',
+      'Dystans w podsumowaniu edytora bez znaku „~”.',
+    ],
+  },
   {
     version: '1.21.2',
     date: '2026-09-30',

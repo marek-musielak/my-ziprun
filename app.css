@@ -14,9 +14,10 @@
   --warn: #ffcb3d;
   --bad: #ff4d5e;
   --warmup: #4a90d9;
-  /* Praca odrobinę jaśniejsza od akcentu (#ff6a2b) — lepiej odcina się od
-     ceglastego sprintu. */
-  --work: #ff8246;
+  /* Praca bursztynowa, wyraźnie żółtsza od akcentu (#ff6a2b) — dobrze odcina
+     się od ceglastego sprintu, a od ostrzeżeń (#ffcb3d) dzieli ją jeszcze
+     wyraźny pomarańcz. */
+  --work: #ffa62b;
   /* Sprint ciemniejszy od pracy, ale z tej samej rodziny — czerwień w aplikacji
      znaczy „stop" i „błąd". */
   --sprint: #d9480f;
