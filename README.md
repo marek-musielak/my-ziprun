@@ -279,8 +279,9 @@ Pod adresem [`/edit`](https://marek-musielak.github.io/my-ziprun/edit) plan
 układa się z odcinków o zadanym czasie, prędkości (1–22 km/h) i nachyleniu
 (0–20 %, puste pole to 0 %). Czas wpisuje się jako sekundy (`90`) albo minuty
 i sekundy (`1:30`).
-Rodzaj odcinka zmienia się kliknięciem: praca → przerwa → schłodzenie →
-rozgrzewka. Sąsiednie odcinki łączą się w grupę z liczbą powtórzeń 1–50.
+Rodzaj odcinka zmienia się kliknięciem: praca → sprint → przerwa → schłodzenie →
+rozgrzewka. Sprint ma ceglasty kolor, własną numerację („Sprint 1”, „Sprint 2”…)
+i podwójny sygnał na starcie. Sąsiednie odcinki łączą się w grupę z liczbą powtórzeń 1–50.
 
 Na bieżąco widać łączny czas, dystans, przewyższenie i wykres, a pod nim listę
 odcinków w postaci `04m00s [6:00] /4%` — czas, tempo na kilometr i nachylenie
@@ -373,6 +374,17 @@ prędkość i zatrzymanie obsługujesz z panelu bieżni.
 **Pełny panel** dokłada kafelki z pomiarami oraz korekty ±0,5 km/h, pauzę,
 przeskok odcinka i duży przycisk zatrzymania. Przełącznik jest na samym ekranie
 treningu oraz w Profilu; wybór jest zapamiętywany.
+
+Korekta ±0,5 km/h zmienia bieżący odcinek i od razu wysyła nową prędkość.
+W odcinku pracy dotyczy też każdej kolejnej pracy — „ta praca jest za łatwa"
+zwykle znaczy „cały trening". Poza pracą (rozgrzewka, przerwa, schłodzenie)
+dotyczy tylko tego jednego odcinka, a następne biegną według planu. W historii
+zostaje korekta pracy.
+
+W sprincie (plany z edytora) krok jest drobniejszy: **0,2 km/h**, dla tego
+i każdego kolejnego sprintu. To osobna korekta — nie rusza prac, a korekta
+pracy nie rusza sprintów. Napisy na przyciskach zmieniają się wtedy na „±0,2”,
+a w historii pojawia się „korekta sprintów”.
 
 W obu trybach zostaje przycisk kończący trening: gdy zatrzymasz pas z konsoli
 bieżni, aplikacja wchodzi w pauzę i czeka na decyzję.

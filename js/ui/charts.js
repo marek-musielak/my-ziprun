@@ -7,10 +7,12 @@ import { esc } from '../tekst.js';
 export function listaSegmentow(segments) {
   return segments
     .map((s) => {
-      const inc = s.incline > 0 ? ' · ' + s.incline + '%'
-                : s.wantedIncline > 0 ? ' · <s>' + s.wantedIncline + '%</s>'
+      // Wszystko, co idzie do HTML, przez esc — także rodzaj i nachylenie.
+      // Plany sprawdza już storage.js, ale rysunek nie może na tym polegać.
+      const inc = s.incline > 0 ? ' · ' + esc(s.incline) + '%'
+                : s.wantedIncline > 0 ? ' · <s>' + esc(s.wantedIncline) + '%</s>'
                 : '';
-      return '<div class="seg ' + s.kind + '"><i></i>' +
+      return '<div class="seg ' + esc(s.kind) + '"><i></i>' +
       '<div class="nm">' + esc(s.label) + inc + '</div>' +
       '<div class="sp">' + s.speed.toFixed(1).replace('.', ',') + '</div>' +
       '<div class="tm">' + fmtTime(s.duration) + '</div></div>';
@@ -25,8 +27,8 @@ export function chartHtml(segments, maxSpeed) {
     .map((s) => {
       const h = Math.max(4, Math.round((s.speed / maxSpeed) * 100));
       const w = Math.max(0.4, (s.duration / total) * 100);
-      return '<div class="bar ' + s.kind + '" style="height:' + h + '%;flex:0 0 ' + w + '%" ' +
-             'title="' + esc(s.label) + ' — ' + s.speed + ' km/h"></div>';
+      return '<div class="bar ' + esc(s.kind) + '" style="height:' + h + '%;flex:0 0 ' + w + '%" ' +
+             'title="' + esc(s.label) + ' — ' + esc(s.speed) + ' km/h"></div>';
     })
     .join('');
 }

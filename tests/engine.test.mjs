@@ -69,8 +69,8 @@ describe('prędkość zadana', () => {
     engine.speedOffset = 1;
     const [rozgrzewka, bieg] = engine.plan.segments;
     assert.equal(engine.targetSpeedFor(bieg), 10.6);
-    // Poza pracą korekta działa w połowie.
-    assert.equal(engine.targetSpeedFor(rozgrzewka), 6.5);
+    // Korekta pracy nie dotyczy odcinków poza pracą.
+    assert.equal(engine.targetSpeedFor(rozgrzewka), 6);
   });
 
   test('nigdy nie przekracza limitu z profilu', () => {
@@ -88,8 +88,10 @@ describe('prędkość zadana', () => {
   });
 
   test('nigdy nie schodzi poniżej zera', () => {
-    engine.speedOffset = -20;
+    engine.korektaOdcinka = -20;
     assert.equal(engine.targetSpeedFor(engine.plan.segments[0]), 0);
+    engine.speedOffset = -20;
+    assert.equal(engine.targetSpeedFor(engine.plan.segments[1]), 0);
   });
 });
 
@@ -446,5 +448,126 @@ describe('schłodzenie po planie z edytora', () => {
     przewin(10);
     await engine.abort();
     assert.equal(engine.state, STATE.ABORTED);
+  });
+});
+
+describe('korekta ±0,5', () => {
+  // rozgrzewka 5, praca 8, przerwa 6, praca 8, schłodzenie 5 — po 20 s
+  const PLAN_KOREKTY = {
+    id: 'korekta', name: 'Korekta', segments: [
+      { t: 20, s: 5, kind: 'warmup', label: 'Rozgrzewka' },
+      { t: 20, s: 8, kind: 'work', label: 'Praca 1' },
+      { t: 20, s: 6, kind: 'recovery', label: 'Przerwa' },
+      { t: 20, s: 8, kind: 'work', label: 'Praca 2' },
+      { t: 20, s: 5, kind: 'cooldown', label: 'Schłodzenie' },
+    ],
+  };
+  const cele = () => engine.plan.segments.map((s) => engine.targetSpeedFor(s));
+
+  test('w pracy: ta praca i każda kolejna, reszta bez zmian', async () => {
+    await uruchom({ plan: PLAN_KOREKTY, followManual: false });
+    przewin(25); // Praca 1
+    engine.adjustSpeed(+0.5);
+    engine.adjustSpeed(+0.5);
+    assert.deepEqual(cele(), [5, 9, 6, 9, 5]);
+    assert.equal(engine.korektaTeraz, 1);
+  });
+
+  test('poza pracą: tylko bieżący odcinek', async () => {
+    await uruchom({ plan: PLAN_KOREKTY, followManual: false });
+    przewin(45); // Przerwa
+    engine.adjustSpeed(-0.5);
+    assert.deepEqual(cele(), [5, 8, 5.5, 8, 5]);
+    assert.equal(engine.korektaTeraz, -0.5);
+  });
+
+  test('korekta poza pracą znika wraz z końcem odcinka', async () => {
+    await uruchom({ plan: PLAN_KOREKTY, followManual: false });
+    przewin(5); // Rozgrzewka
+    engine.adjustSpeed(+0.5);
+    assert.equal(engine.targetSpeedFor(engine.segment), 5.5);
+    przewin(20); // już Praca 1
+    assert.equal(engine.segment.label, 'Praca 1');
+    assert.deepEqual(cele(), [5, 8, 6, 8, 5]);
+    assert.equal(engine.korektaTeraz, 0);
+  });
+
+  test('korekta pracy zostaje po przerwie', async () => {
+    await uruchom({ plan: PLAN_KOREKTY, followManual: false });
+    przewin(25);
+    engine.adjustSpeed(+0.5);
+    przewin(20); // Przerwa
+    assert.equal(engine.targetSpeedFor(engine.segment), 6, 'przerwa według planu');
+    przewin(20); // Praca 2
+    assert.equal(engine.targetSpeedFor(engine.segment), 8.5);
+  });
+
+  test('nowa prędkość idzie do bieżni od razu', async () => {
+    await uruchom({ plan: PLAN_KOREKTY, followManual: false });
+    przewin(45); // Przerwa
+    engine.adjustSpeed(+0.5);
+    await dokonczObietnice();
+    assert.equal(tm.rampy.at(-1), 6.5);
+  });
+
+  test('w historii zostaje korekta pracy', async () => {
+    await uruchom({ plan: PLAN_KOREKTY, followManual: false });
+    przewin(25);
+    engine.adjustSpeed(+0.5);
+    przewin(20);
+    engine.adjustSpeed(-0.5); // w przerwie — nie wpływa na korektę pracy
+    assert.equal(engine.summary().speedOffset, 0.5);
+  });
+});
+
+describe('sprint', () => {
+  // praca 8, sprint 16, przerwa 6, praca 8, sprint 16 — po 20 s
+  const PLAN_SPRINTOW = {
+    id: 'sprinty', name: 'Sprinty', segments: [
+      { t: 20, s: 8, kind: 'work', label: 'Praca 1' },
+      { t: 20, s: 16, kind: 'sprint', label: 'Sprint 1' },
+      { t: 20, s: 6, kind: 'recovery', label: 'Przerwa' },
+      { t: 20, s: 8, kind: 'work', label: 'Praca 2' },
+      { t: 20, s: 16, kind: 'sprint', label: 'Sprint 2' },
+    ],
+  };
+  const cele = () => engine.plan.segments.map((s) => engine.targetSpeedFor(s));
+
+  test('± w sprincie zmienia o 0,2 ten i każdy kolejny sprint', async () => {
+    await uruchom({ plan: PLAN_SPRINTOW, followManual: false });
+    przewin(25); // Sprint 1
+    assert.equal(engine.krokKorekty, 0.2);
+    engine.adjustSpeed(+0.5); // przycisk podaje tylko kierunek
+    engine.adjustSpeed(+0.5);
+    assert.deepEqual(cele(), [8, 16.4, 6, 8, 16.4]);
+  });
+
+  test('korekta sprintów i pracy są osobne', async () => {
+    await uruchom({ plan: PLAN_SPRINTOW, followManual: false });
+    przewin(5); // Praca 1
+    assert.equal(engine.krokKorekty, 0.5);
+    engine.adjustSpeed(+0.5);
+    przewin(20); // Sprint 1
+    engine.adjustSpeed(-0.5);
+    assert.deepEqual(cele(), [8.5, 15.8, 6, 8.5, 15.8]);
+  });
+
+  test('korekta sprintów zostaje po przerwie i trafia do wyniku', async () => {
+    await uruchom({ plan: PLAN_SPRINTOW, followManual: false });
+    przewin(25);
+    engine.adjustSpeed(+0.5);
+    przewin(60); // Sprint 2
+    assert.equal(engine.targetSpeedFor(engine.segment), 16.2);
+    const s = engine.summary();
+    assert.equal(s.korektaSprintow, 0.2);
+    assert.equal(s.speedOffset, 0);
+  });
+
+  test('nowa prędkość sprintu idzie do bieżni od razu', async () => {
+    await uruchom({ plan: PLAN_SPRINTOW, followManual: false });
+    przewin(25);
+    engine.adjustSpeed(+0.5);
+    await dokonczObietnice();
+    assert.equal(tm.rampy.at(-1), 16.2);
   });
 });

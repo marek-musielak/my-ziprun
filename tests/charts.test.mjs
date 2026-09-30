@@ -69,3 +69,17 @@ describe('listaSegmentow', () => {
     assert.match(listaSegmentow([ODCINKI[1]]), /<s>4%<\/s>/);
   });
 });
+
+describe('bezpieczny HTML', () => {
+  const zly = { kind: 'work"><img src=x onerror=alert(1)>', label: '<script>x</script>', speed: 9, duration: 60, incline: 0, wantedIncline: 0 };
+
+  test('wykres nie wstawia znaczników z danych', () => {
+    const html = chartHtml([zly], 10);
+    assert.doesNotMatch(html, /<img|<script/);
+    assert.match(html, /&quot;&gt;&lt;img/);
+  });
+
+  test('lista odcinków nie wstawia znaczników z danych', () => {
+    assert.doesNotMatch(listaSegmentow([zly]), /<img|<script/);
+  });
+});

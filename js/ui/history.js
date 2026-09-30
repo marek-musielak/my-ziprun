@@ -74,7 +74,10 @@ function wpisHistorii(x, wszystkie, idx) {
   if (x.maxHr) fakty.push(['tętno maks.', x.maxHr + ' bpm']);
   if (x.segmentCount) fakty.push(['odcinki', (x.segmentsDone ?? '?') + ' z ' + x.segmentCount]);
   if (x.speedOffset) {
-    fakty.push(['korekta', (x.speedOffset > 0 ? '+' : '') + liczba(x.speedOffset, 1) + ' km/h']);
+    fakty.push(['korekta pracy', (x.speedOffset > 0 ? '+' : '') + liczba(x.speedOffset, 1) + ' km/h']);
+  }
+  if (x.korektaSprintow) {
+    fakty.push(['korekta sprintów', (x.korektaSprintow > 0 ? '+' : '') + liczba(x.korektaSprintow, 1) + ' km/h']);
   }
   if (x.speedFactor && Math.round((x.speedFactor - 1) * 100) !== 0) {
     const p = Math.round((x.speedFactor - 1) * 100);
@@ -103,7 +106,7 @@ function wpisHistorii(x, wszystkie, idx) {
         '<div class="dt">' + data.toLocaleString('pl-PL') +
         (x.completed ? '' : ' · przerwany' + postep) + '</div></div>' +
         '<div class="st"><div>' + liczba(km) + ' km' +
-          (x.przewyzszenieM > 0 ? ' · ' + x.przewyzszenieM + ' m up' : '') + '</div>' +
+          (x.przewyzszenieM > 0 ? ' · ' + esc(x.przewyzszenieM) + ' m up' : '') + '</div>' +
         '<div class="dt">' + fmtTime(czas) + '</div></div>' +
       '</div>' +
       '<div class="hist-det">' +

@@ -79,11 +79,11 @@ describe('nowy plan', () => {
 });
 
 describe('operacje', () => {
-  test('rodzaj przełącza się w kółko: praca → przerwa → schłodzenie → rozgrzewka', () => {
+  test('rodzaj przełącza się w kółko: praca → sprint → przerwa → schłodzenie → rozgrzewka', () => {
     let p = plan(odc('work', 9, 0, 60));
     const kolejne = [];
-    for (let k = 0; k < 4; k++) { p = m.przelaczRodzaj(p, [0]); kolejne.push(p.elementy[0].kind); }
-    assert.deepEqual(kolejne, ['recovery', 'cooldown', 'warmup', 'work']);
+    for (let k = 0; k < 5; k++) { p = m.przelaczRodzaj(p, [0]); kolejne.push(p.elementy[0].kind); }
+    assert.deepEqual(kolejne, ['sprint', 'recovery', 'cooldown', 'warmup', 'work']);
   });
 
   test('dodany odcinek przepisuje wartości z ostatniego, rodzaj: praca', () => {
@@ -190,6 +190,16 @@ describe('plan dla aplikacji', () => {
     ]);
   });
 
+  test('sprinty mają własną numerację, niezależną od prac', () => {
+    const p = m.doPlanu(m.przelicz(plan(
+      odc('warmup', 9, 0, 60),
+      { r: '2', odcinki: [odc('work', 12, 0, 60), odc('sprint', 18, 0, 20), odc('recovery', 6, 0, 60)] },
+    )).plan);
+    assert.deepEqual(p.segments.map((s) => s.label), [
+      'Rozgrzewka', 'Praca 1', 'Sprint 1', 'Przerwa', 'Praca 2', 'Sprint 2', 'Przerwa',
+    ]);
+  });
+
   test('prędkości wpisane liczbą — plan nie zależy od profilu', () => {
     const p = m.doPlanu(liczbowy());
     const wolny = resolvePlan(p, { ...DEFAULT_PROFILE, easy: 6, fast: 8 });
@@ -269,6 +279,11 @@ describe('link', () => {
     assert.equal(odkoduj(spreparowany(poprawny())).elementy.length, 1);
   });
 
+  test('sprint przechodzi przez link', () => {
+    const p = odkoduj(spreparowany({ ...poprawny(), e: [['sprint', 20, 18, 0]] }));
+    assert.equal(p.elementy[0].kind, 'sprint');
+  });
+
   test('uszkodzony albo obcy link jest odrzucany z wyjaśnieniem', () => {
     const zle = [
       'nie-base64!!', spreparowany('tekst'), spreparowany(null),
@@ -277,7 +292,7 @@ describe('link', () => {
       spreparowany({ ...poprawny(), n: '' }),
       spreparowany({ ...poprawny(), n: 'x'.repeat(61) }),
       spreparowany({ ...poprawny(), e: [] }),
-      spreparowany({ ...poprawny(), e: [['sprint', 60, 9, 0]] }),
+      spreparowany({ ...poprawny(), e: [['turbo', 60, 9, 0]] }),
       spreparowany({ ...poprawny(), e: [['work', 5, 9, 0]] }),
       spreparowany({ ...poprawny(), e: [['work', 60, 30, 0]] }),
       spreparowany({ ...poprawny(), e: [['work', 60, 9.55, 0]] }),

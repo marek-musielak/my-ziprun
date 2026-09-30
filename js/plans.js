@@ -25,6 +25,9 @@ export const DEFAULT_PROFILE = {
   weightKg: 80,
 };
 
+/** Wszystkie kotwice wysiłku — lista do sprawdzania planów spoza aplikacji. */
+export const KOTWICE = ['stop', 'stroll', 'walk', 'brisk', 'jog', 'easy', 'steady', 'tempo', 'threshold', 'vo2', 'sprint'];
+
 /**
  * Kotwice wysiłku. Wszystko pomiędzy "easy" i "fast" jest interpolowane,
  * więc wystarczy, że ustawisz te dwie wartości w profilu.
@@ -47,8 +50,10 @@ export function anchorSpeed(anchor, p) {
     vo2: p.fast,
     sprint: p.fast + 1.5,
   };
+  // hasOwn, a nie samo map[anchor]: „constructor" czy „toString" też są
+  // w każdym obiekcie i dałyby NaN zamiast błędu.
+  if (!Object.hasOwn(map, anchor)) throw new Error('Nieznana kotwica prędkości: ' + anchor);
   const v = map[anchor];
-  if (v === undefined) throw new Error('Nieznana kotwica prędkości: ' + anchor);
   return Math.min(p.maxSpeedCap, Math.round(v * 10) / 10);
 }
 
@@ -129,7 +134,7 @@ export const PLANS = [
     name: 'Spalanie tłuszczu 30 min',
     focus: 'Redukcja / interwały',
     level: 2,
-    desc: 'Plan odtworzony z aplikacji FitShow („30 Minute Fat Burning Run"). Pięć bloków biegowych 8–9 km/h przeplatanych marszem. Prędkości są tu wpisane wprost, a nie przeliczane z profilu — dokładnie takie, jakie ustawiała FitShow. Jeśli okażą się za łatwe albo za trudne, użyj w trakcie przycisków ±0,5 km/h; korekta przenosi się na wszystkie kolejne odcinki.',
+    desc: 'Plan odtworzony z aplikacji FitShow („30 Minute Fat Burning Run"). Pięć bloków biegowych 8–9 km/h przeplatanych marszem. Prędkości są tu wpisane wprost, a nie przeliczane z profilu — dokładnie takie, jakie ustawiała FitShow. Jeśli okażą się za łatwe albo za trudne, użyj w trakcie przycisków ±0,5 km/h; korekta w biegu przenosi się na kolejne biegi, a w marszu dotyczy tylko tego marszu.',
     segments: [
       { t: M(3), s: 3.5, kind: 'warmup', label: 'Rozgrzewka' },
       // Cztery pełne bloki po pięć minut, każdy zamknięty marszem.
@@ -360,6 +365,7 @@ export const planById = (id) => PLANS.find((p) => p.id === id);
 export const KIND_LABEL = {
   warmup: 'Rozgrzewka',
   work: 'Praca',
+  sprint: 'Sprint',
   recovery: 'Przerwa',
   cooldown: 'Schłodzenie',
 };

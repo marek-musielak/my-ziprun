@@ -2,7 +2,7 @@
 
 import { anchorSpeed } from '../plans.js';
 import * as store from '../storage.js';
-import { $, speech, stan, toast, plural, downloadText, stamp, pobierzOdNowa } from './core.js';
+import { $, speech, stan, toast, plural, esc, downloadText, stamp, pobierzOdNowa } from './core.js';
 import { naWejscie } from './nav.js';
 import { renderPlans } from './plan-list.js';
 import { updateInclineUi, applyRunMode } from './run.js';
@@ -17,7 +17,7 @@ export function renderProfile() {
   // Zakres tylko do odczytu: ustala go bieżnia przy połączeniu, a nie suwak.
   $('p-limits').innerHTML =
     'Prędkość: <b>do ' + profile.maxSpeedCap.toFixed(1).replace('.', ',') + ' km/h</b><br>' +
-    'Nachylenie: <b>' + (profile.maxInclineCap > 0 ? 'do ' + profile.maxInclineCap + ' %' : 'brak pochylni') + '</b>';
+    'Nachylenie: <b>' + (profile.maxInclineCap > 0 ? 'do ' + esc(profile.maxInclineCap) + ' %' : 'brak pochylni') + '</b>';
   $('p-limits-src').textContent = profile.zakresZ
     ? 'Odczytany z bieżni ' + profile.zakresZ + '. Ani plan, ani korekta nie wyjdą poza ten zakres.'
     : 'Zakres nie był jeszcze odczytany z bieżni — ustawi się sam przy najbliższym połączeniu.';

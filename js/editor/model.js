@@ -9,11 +9,15 @@
 
 import { nachylenieTerenu, przewyzszenie } from '../plans.js';
 
-/** Kolejność rodzajów pod przyciskiem: każde kliknięcie przechodzi dalej. */
-export const CYKL_RODZAJOW = ['work', 'recovery', 'cooldown', 'warmup'];
+/**
+ * Kolejność rodzajów pod przyciskiem: każde kliknięcie przechodzi dalej.
+ * Sprint zaraz po pracy — to z niej najczęściej się go robi.
+ */
+export const CYKL_RODZAJOW = ['work', 'sprint', 'recovery', 'cooldown', 'warmup'];
 
 export const NAZWA_RODZAJU = {
   work: 'Praca',
+  sprint: 'Sprint',
   recovery: 'Przerwa',
   cooldown: 'Schłodzenie',
   warmup: 'Rozgrzewka',
@@ -257,12 +261,15 @@ export function rozwin(elementy) {
   return out;
 }
 
-/** Nazwy odcinków: praca numerowana po kolei, reszta nazwą rodzaju. */
+/**
+ * Nazwy odcinków: praca i sprint numerowane po kolei, każde osobno — „Praca 3"
+ * to trzecia praca, a nie trzeci wysiłek dowolnego rodzaju. Reszta nazwą rodzaju.
+ */
 export function nazwij(odcinki) {
-  let praca = 0;
+  const licznik = { work: 0, sprint: 0 };
   return odcinki.map((o) => ({
     ...o,
-    label: o.kind === 'work' ? NAZWA_RODZAJU.work + ' ' + ++praca : NAZWA_RODZAJU[o.kind],
+    label: o.kind in licznik ? NAZWA_RODZAJU[o.kind] + ' ' + ++licznik[o.kind] : NAZWA_RODZAJU[o.kind],
   }));
 }
 

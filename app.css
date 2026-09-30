@@ -15,6 +15,9 @@
   --bad: #ff4d5e;
   --warmup: #4a90d9;
   --work: #ff6a2b;
+  /* Sprint ciemniejszy od pracy, ale z tej samej rodziny — czerwień w aplikacji
+     znaczy „stop" i „błąd". */
+  --sprint: #d9480f;
   --recovery: #2fd97a;
   --cooldown: #7a8ba0;
   --r: 14px;
@@ -151,11 +154,13 @@ button { font-family: inherit; cursor: pointer; }
 .chart .bar { flex: 1 1 0; min-width: 1px; border-radius: 2px 2px 0 0; background: var(--work); }
 .chart .bar.warmup { background: var(--warmup); }
 .chart .bar.recovery { background: var(--recovery); }
+.chart .bar.sprint { background: var(--sprint); }
 .chart .bar.cooldown { background: var(--cooldown); }
 .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--dim); }
 .legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
 .sw.warmup { background: var(--warmup); } .sw.work { background: var(--work); }
 .sw.recovery { background: var(--recovery); } .sw.cooldown { background: var(--cooldown); }
+.sw.sprint { background: var(--sprint); }
 
 .seg-list { display: grid; gap: 6px; }
 .seg {
@@ -165,6 +170,7 @@ button { font-family: inherit; cursor: pointer; }
 .seg:last-child { border-bottom: 0; }
 .seg i { width: 4px; height: 26px; border-radius: 2px; background: var(--work); }
 .seg.warmup i { background: var(--warmup); } .seg.recovery i { background: var(--recovery); }
+.seg.sprint i { background: var(--sprint); }
 .seg.cooldown i { background: var(--cooldown); }
 .seg .nm { font-size: 14px; }
 .seg .sp { font-variant-numeric: tabular-nums; font-weight: 700; }
@@ -609,6 +615,7 @@ button { font-family: inherit; cursor: pointer; }
 #view-run { --puls: var(--work); }
 #view-run[data-kind="warmup"] { --puls: var(--warmup); }
 #view-run[data-kind="recovery"] { --puls: var(--recovery); }
+#view-run[data-kind="sprint"] { --puls: var(--sprint); }
 #view-run[data-kind="cooldown"] { --puls: var(--cooldown); }
 #view-run .kind { color: var(--puls); }
 .ring-wrap::before {
@@ -660,6 +667,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 }
 .ed-odc.warmup { border-left-color: var(--warmup); }
 .ed-odc.recovery { border-left-color: var(--recovery); }
+.ed-odc.sprint { border-left-color: var(--sprint); }
 .ed-odc.cooldown { border-left-color: var(--cooldown); }
 .ed-zazn { width: 18px; height: 18px; flex: 0 0 18px; margin: 0; accent-color: var(--accent); }
 
@@ -671,6 +679,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 }
 .ed-odc.warmup .ed-rodzaj { color: var(--warmup); }
 .ed-odc.recovery .ed-rodzaj { color: var(--recovery); }
+.ed-odc.sprint .ed-rodzaj { color: var(--sprint); }
 .ed-odc.cooldown .ed-rodzaj { color: var(--cooldown); }
 
 .ed-pole { display: flex; align-items: center; gap: 6px; }

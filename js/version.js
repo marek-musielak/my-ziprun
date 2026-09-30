@@ -10,9 +10,42 @@
 // typu "to jeszcze nie jest wypchnięte, więc dopiszę do poprzedniej wersji" —
 // taki wyjątek raz już doprowadził do sześciu commitów pod jednym numerem.
 
-export const VERSION = '1.19.1';
+export const VERSION = '1.21.1';
 
 export const CHANGELOG = [
+  {
+    version: '1.21.1',
+    date: '2026-09-30',
+    title: 'Bezpieczny import kopii danych',
+    changes: [
+      'Import kopii danych przyjmował plany bez sprawdzania. Spreparowany plik mógł przemycić własny kod w rodzaju odcinka albo w poziomie trudności — wykonywał się już na liście planów.',
+      'Plany z kopii i te zapisane w telefonie są teraz sprawdzane pole po polu: rodzaj odcinka z listy, poziom tylko 1–3, czasy i prędkości jako liczby. Planu, którego nie da się uratować, aplikacja nie wczytuje.',
+      'Profil i ustawienia z kopii przyjmują tylko znane pola właściwego typu.',
+      'Niezależnie od tego rodzaj odcinka, poziom i liczby przechodzą przy rysowaniu przez te same zabezpieczenia co nazwy. Link z edytora był bezpieczny już wcześniej.',
+    ],
+  },
+  {
+    version: '1.21.0',
+    date: '2026-09-30',
+    title: 'Sprint jako osobny rodzaj odcinka',
+    changes: [
+      'W edytorze nowy rodzaj odcinka — sprint, zaraz po pracy pod przyciskiem rodzaju. Ma ceglasty kolor, ciemniejszy od pracy, i własną numerację: „Sprint 1”, „Sprint 2”…',
+      'Na początku sprintu słychać dwa szybkie wysokie sygnały, żeby poznać go bez patrzenia na ekran.',
+      'Przyciski ± w trakcie sprintu zmieniają prędkość o 0,2 km/h — ten sprint i każdy kolejny. To osobna korekta od pracy; napisy na przyciskach zmieniają się wtedy na „±0,2”.',
+      'Korekta sprintów trafia do historii obok korekty pracy. Plany wbudowane zostają bez zmian.',
+    ],
+  },
+  {
+    version: '1.20.0',
+    date: '2026-09-30',
+    title: 'Korekta ±0,5 dla bieżącego odcinka',
+    changes: [
+      'Przyciski ±0,5 km/h zmieniają przede wszystkim bieżący odcinek i od razu wysyłają nową prędkość.',
+      'W odcinku pracy korekta obejmuje też każdą kolejną pracę. Rozgrzewki, przerwy i schłodzenie zostają według planu — wcześniej dostawały połowę korekty.',
+      'Poza pracą korekta dotyczy tylko tego jednego odcinka i znika wraz z jego końcem.',
+      'W historii korekta nazywa się teraz „korekta pracy”.',
+    ],
+  },
   {
     version: '1.19.1',
     date: '2026-09-29',

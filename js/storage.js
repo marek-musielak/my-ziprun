@@ -1,8 +1,61 @@
 // Profil, historia treningów i notatki o protokole - wszystko lokalnie
 // w localStorage. Żadne dane nie wychodzą z telefonu.
 
-import { DEFAULT_PROFILE } from './plans.js';
+import { DEFAULT_PROFILE, KIND_LABEL, KOTWICE } from './plans.js';
 import { kotwicaRam } from './generator.js';
+
+// --- sprawdzanie planów spoza aplikacji --------------------------------------
+
+const RODZAJE = Object.keys(KIND_LABEL);
+const tekst = (x, max) =>
+  typeof x === 'string' ? x.replace(/[\u0000-\u001f\u007f]/g, '').slice(0, max) : '';
+const liczbaW = (x, od, doo) => typeof x === 'number' && Number.isFinite(x) && x >= od && x <= doo;
+
+/**
+ * Plan z kopii danych albo z pamięci — sprawdzony pole po polu. Kopię mógł
+ * przygotować ktokolwiek, a rodzaj odcinka i poziom trafiają do HTML: bez tego
+ * spreparowany plik wykonywał własny kod już na liście planów. Zwraca plan
+ * z dozwolonymi wartościami albo null, gdy czegoś nie da się uratować.
+ */
+export function oczyscPlan(p) {
+  if (!p || typeof p !== 'object' || typeof p.id !== 'string' || !/^[\w-]{1,80}$/.test(p.id)) return null;
+  if (!Array.isArray(p.segments) || !p.segments.length || p.segments.length > 1000) return null;
+  const segments = [];
+  for (const s of p.segments) {
+    if (!s || typeof s !== 'object' || !RODZAJE.includes(s.kind)) return null;
+    if (!liczbaW(s.t, 1, 6 * 3600)) return null;
+    // Prędkość to liczba km/h albo nazwa kotwicy wysiłku z profilu.
+    if (!(liczbaW(s.s, 0, 40) || KOTWICE.includes(s.s))) return null;
+    if (s.i != null && !liczbaW(s.i, 0, 40)) return null;
+    segments.push({
+      t: s.t, s: s.s, i: s.i ?? 0, kind: s.kind,
+      label: tekst(s.label, 60) || KIND_LABEL[s.kind],
+      ...(typeof s.cue === 'string' ? { cue: tekst(s.cue, 200) } : {}),
+    });
+  }
+  const czysty = {
+    ...p,
+    name: tekst(p.name, 80).trim() || 'Plan',
+    focus: tekst(p.focus, 60),
+    desc: tekst(p.desc, 1000),
+    segments,
+  };
+  // Poziom tylko 1–3; plany z edytora nie mają go wcale.
+  if ([1, 2, 3].includes(p.level)) czysty.level = p.level; else delete czysty.level;
+  return czysty;
+}
+
+/** Tylko znane pola, każde tego samego typu co wartość domyślna. */
+function tylkoZnane(domyslne, obj) {
+  const out = { ...domyslne };
+  if (!obj || typeof obj !== 'object') return out;
+  for (const [k, v] of Object.entries(domyslne)) {
+    if (typeof obj[k] !== typeof v) continue;
+    if (typeof v === 'number' && !Number.isFinite(obj[k])) continue;
+    out[k] = typeof v === 'string' ? tekst(obj[k], 200) : obj[k];
+  }
+  return out;
+}
 
 const KEY_PROFILE = 'ziprun.profile';
 const KEY_HISTORY = 'ziprun.history';
@@ -89,7 +142,9 @@ const MAX_PLANS = 50;
 export function loadPlans() {
   try {
     const l = JSON.parse(localStorage.getItem(KEY_PLANS) || '[]');
-    return Array.isArray(l) ? naprawRamy(naprawPrzerwy(l)) : [];
+    // Sprawdzamy też to, co już leży w pamięci — mogło tam trafić z kopii
+    // zaimportowanej przez starszą wersję, która niczego nie sprawdzała.
+    return Array.isArray(l) ? naprawRamy(naprawPrzerwy(l.map(oczyscPlan).filter(Boolean))) : [];
   } catch { return []; }
 }
 
@@ -239,7 +294,7 @@ export function importujDane(obj, { zProfilem = false } = {}) {
   if (Array.isArray(obj.plany) && obj.plany.length) {
     const obecneP = loadPlans();
     const znaneP = new Set(obecneP.map((x) => x.id));
-    const noweP = obj.plany.filter((x) => x && x.id && Array.isArray(x.segments) && !znaneP.has(x.id));
+    const noweP = obj.plany.map(oczyscPlan).filter((x) => x && !znaneP.has(x.id));
     planowDodanych = noweP.length;
     if (noweP.length) write(KEY_PLANS, [...noweP, ...obecneP].slice(0, MAX_PLANS));
   }
@@ -257,8 +312,10 @@ export function importujDane(obj, { zProfilem = false } = {}) {
   }
 
   if (zProfilem) {
-    if (obj.profil) write(KEY_PROFILE, { ...DEFAULT_PROFILE, ...obj.profil });
-    if (obj.ustawienia) write(KEY_SETTINGS, { ...DEFAULT_SETTINGS, ...obj.ustawienia });
+    // Tylko znane pola właściwego typu — tekst w miejscu liczby wywracał
+    // ekran profilu, a nieznane klucze nie mają tu czego szukać.
+    if (obj.profil) write(KEY_PROFILE, tylkoZnane(DEFAULT_PROFILE, obj.profil));
+    if (obj.ustawienia) write(KEY_SETTINGS, tylkoZnane(DEFAULT_SETTINGS, obj.ustawienia));
   }
 
   return {

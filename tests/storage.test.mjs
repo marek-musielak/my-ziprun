@@ -100,7 +100,7 @@ describe('plany własne', () => {
     const [wczytany] = store.loadPlans();
     assert.equal(wczytany.segments[0].s, 'stroll');
     assert.equal(wczytany.segments.at(-1).s, 'stroll');
-    assert.equal(JSON.stringify(wczytany.segments.slice(1, -1)), rdzen, 'odcinki właściwe bez zmian');
+    assert.deepEqual(wczytany.segments.slice(1, -1), JSON.parse(rdzen), 'odcinki właściwe bez zmian');
   });
 });
 
@@ -228,5 +228,76 @@ describe('kopia danych', () => {
     const w = store.importujDane({ aplikacja: 'ZipRun', historia: [], plany: [{ id: 'zly' }, plan()] });
     assert.equal(w.planowDodanych, 1);
     assert.equal(store.loadPlans().length, 1);
+  });
+});
+
+describe('plany spoza aplikacji', () => {
+  const zly = (nadpisz) => ({ ...plan(), ...nadpisz });
+  const odcinek = (nadpisz) => ({ ...plan(), segments: [{ t: 60, s: 9, kind: 'work', label: 'Bieg', ...nadpisz }] });
+
+  test('prawdziwe plany z generatora i z edytora przechodzą bez zmian', () => {
+    const z = plan();
+    assert.deepEqual(store.oczyscPlan(z).segments, z.segments.map((s) => ({ i: 0, ...s })));
+    const edytor = { id: 'edytor-abc', name: 'Z edytora', focus: 'Z edytora', desc: '', custom: true, zEdytora: true,
+      segments: [{ t: 60, s: 12.5, i: 4, kind: 'sprint', label: 'Sprint 1' }] };
+    assert.deepEqual(store.oczyscPlan(edytor), edytor);
+  });
+
+  test('kod w rodzaju odcinka odrzuca cały plan', () => {
+    assert.equal(store.oczyscPlan(odcinek({ kind: 'work"><img src=x onerror=alert(1)>' })), null);
+  });
+
+  test('złe liczby i nieznane kotwice odrzucają plan', () => {
+    for (const z of [{ t: '60' }, { t: -5 }, { t: Infinity }, { s: '9' }, { s: 'turbo' }, { s: 'constructor' }, { s: 99 }, { i: '<b>' }]) {
+      assert.equal(store.oczyscPlan(odcinek(z)), null, JSON.stringify(z));
+    }
+  });
+
+  test('poziom tylko 1–3, inaczej znika', () => {
+    assert.equal(store.oczyscPlan(zly({ level: 2 })).level, 2);
+    assert.equal('level' in store.oczyscPlan(zly({ level: '<img src=x onerror=alert(1)>' })), false);
+    assert.equal('level' in store.oczyscPlan(zly({ level: 7 })), false);
+  });
+
+  test('teksty tylko jako tekst, bez znaków sterujących i z limitem długości', () => {
+    const p = store.oczyscPlan(zly({ name: { toString: () => 'x' }, focus: 5, desc: 'a\u0007b' }));
+    assert.equal(p.name, 'Plan');
+    assert.equal(p.focus, '');
+    assert.equal(p.desc, 'ab');
+    assert.equal(store.oczyscPlan(zly({ name: 'x'.repeat(500) })).name.length, 80);
+    assert.equal(store.oczyscPlan(odcinek({ label: 42 })).segments[0].label, 'Praca');
+  });
+
+  test('zły identyfikator odrzuca plan', () => {
+    for (const id of ['', '<script>', 'a b', 5, 'x'.repeat(81)]) assert.equal(store.oczyscPlan(zly({ id })), null, String(id));
+  });
+
+  test('import kopii pomija spreparowane plany, prawdziwe dodaje', () => {
+    const w = store.importujDane({ aplikacja: 'ZipRun', historia: [], plany: [
+      odcinek({ kind: 'work"><img src=x onerror=alert(1)>' }),
+      plan(),
+    ] });
+    assert.equal(w.planowDodanych, 1);
+    assert.equal(store.loadPlans().length, 1);
+  });
+
+  test('spreparowany plan, który już leży w pamięci, nie jest wczytywany', () => {
+    ls.setItem('ziprun.plans', JSON.stringify([odcinek({ kind: '"><svg onload=alert(1)>' }), plan()]));
+    assert.equal(store.loadPlans().length, 1);
+  });
+
+  test('profil z kopii: tylko znane pola właściwego typu', () => {
+    store.importujDane({ aplikacja: 'ZipRun', historia: [],
+      profil: { easy: 9.5, fast: '<img src=x onerror=alert(1)>', maxInclineCap: NaN, obce: 1 },
+      ustawienia: { voice: 'tak', countdown: 3, lastDeviceName: 'FS\u0007-X' } }, { zProfilem: true });
+    const p = store.loadProfile();
+    assert.equal(p.easy, 9.5);
+    assert.equal(p.fast, DEFAULT_PROFILE.fast);
+    assert.equal(p.maxInclineCap, DEFAULT_PROFILE.maxInclineCap);
+    assert.equal('obce' in p, false);
+    const s = store.loadSettings();
+    assert.equal(s.voice, store.DEFAULT_SETTINGS.voice);
+    assert.equal(s.countdown, 3);
+    assert.equal(s.lastDeviceName, 'FS-X');
   });
 });

@@ -42,7 +42,7 @@ export function renderPlans() {
     const btn = document.createElement('button');
     // Plany z edytora nie mają poziomu trudności — karta zostaje wtedy
     // w kolorze akcentu zamiast klasy „lundefined".
-    btn.className = 'plan' + (plan.level ? ' l' + plan.level : '');
+    btn.className = 'plan' + ([1, 2, 3].includes(plan.level) ? ' l' + plan.level : '');
     btn.innerHTML =
       '<div class="focus">' + esc(plan.focus) + '</div>' +
       '<h3>' + (czyUlubiony(plan.id) ? '<span class="fav">★</span>' : '') + esc(plan.name) +
@@ -160,7 +160,7 @@ function pokazPlan(plan, { podglad = false } = {}) {
     '<span>' + esc(plan.focus) + '</span>' +
     '<span>' + Math.round(r.totalSeconds / 60) + ' min</span>' +
     '<span>~' + r.estDistanceKm.toFixed(2).replace('.', ',') + ' km</span>' +
-    (plan.level ? '<span>poziom ' + plan.level + '/3</span>' : '');
+    ([1, 2, 3].includes(plan.level) ? '<span>poziom ' + plan.level + '/3</span>' : '');
   $('pd-desc').textContent = podglad
     ? 'Podgląd planu z linku — nie jest jeszcze zapisany. Dodaj go, żeby móc go uruchomić.'
     : plan.desc;
@@ -174,6 +174,8 @@ function pokazPlan(plan, { podglad = false } = {}) {
 
   const maxSpeed = Math.max(...r.segments.map((s) => s.speed), 1);
   $('pd-chart').innerHTML = chartHtml(r.segments, maxSpeed);
+  // Sprinty mają tylko plany z edytora — reszcie legenda się nie wydłuża.
+  $('pd-leg-sprint').classList.toggle('hidden', !r.segments.some((s) => s.kind === 'sprint'));
 
   $('pd-segments').innerHTML = listaSegmentow(r.segments);
 

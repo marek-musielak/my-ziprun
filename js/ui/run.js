@@ -218,9 +218,17 @@ engine.on('tick', (d) => {
   if (d.metrics.hr) czesci.push('<b>' + d.metrics.hr + '</b> bpm');
   $('run-mini').innerHTML = czesci.map((x) => '<span>' + x + '</span>').join('');
 
+  // Przycisk mówi, co zrobi: w sprincie krok jest drobniejszy.
+  const krok = engine.krokKorekty.toFixed(1).replace('.', ',');
+  $('c-faster-krok').textContent = '+' + krok;
+  $('c-slower-krok').textContent = '−' + krok;
+
+  // Korekta tego odcinka: w pracy ta z pracy, w sprincie ta ze sprintów,
+  // gdzie indziej — tylko ten odcinek.
   const off = $('run-offset');
-  if (engine.speedOffset !== 0) {
-    off.textContent = (engine.speedOffset > 0 ? '+' : '') + engine.speedOffset.toFixed(1).replace('.', ',');
+  const korekta = engine.korektaTeraz;
+  if (korekta !== 0) {
+    off.textContent = (korekta > 0 ? '+' : '') + korekta.toFixed(1).replace('.', ',');
     off.classList.remove('hidden');
   } else off.classList.add('hidden');
 
@@ -339,7 +347,15 @@ engine.on('msg', (m) => {
   clearTimeout(msgTimer);
   msgTimer = setTimeout(() => { $('run-msg').textContent = ''; }, 12000);
 });
-engine.on('segment', () => speech.beep(engine.segment.kind === 'work' ? 1040 : 720, 130));
+// Sygnał mówi, co się zaczyna, zanim spojrzysz na ekran: wysoki przed pracą,
+// podwójny wysoki przed sprintem, niższy przed resztą.
+engine.on('segment', () => {
+  const rodzaj = engine.segment.kind;
+  if (rodzaj === 'sprint') {
+    speech.beep(1040, 110);
+    setTimeout(() => speech.beep(1040, 110), 180);
+  } else speech.beep(rodzaj === 'work' ? 1040 : 720, 130);
+});
 
 $('c-pause').addEventListener('click', () => {
   if (engine.state === STATE.PAUSED) engine.resume();

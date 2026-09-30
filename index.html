@@ -102,6 +102,7 @@
     <div class="legend">
       <span><i class="sw warmup"></i>rozgrzewka</span>
       <span><i class="sw work"></i>praca</span>
+      <span id="pd-leg-sprint" class="hidden"><i class="sw sprint"></i>sprint</span>
       <span><i class="sw recovery"></i>przerwa</span>
       <span><i class="sw cooldown"></i>schłodzenie</span>
     </div>
@@ -186,9 +187,9 @@
   </div>
 
   <div class="controls">
-    <button id="c-slower" class="ctl">−0,5<small>km/h</small></button>
+    <button id="c-slower" class="ctl"><span id="c-slower-krok">−0,5</span><small>km/h</small></button>
     <button id="c-pause" class="ctl wide">Pauza</button>
-    <button id="c-faster" class="ctl">+0,5<small>km/h</small></button>
+    <button id="c-faster" class="ctl"><span id="c-faster-krok">+0,5</span><small>km/h</small></button>
     <button id="c-inc-down" class="ctl">−1<small>%</small></button>
     <button id="c-skip" class="ctl wide">Następny odcinek ›</button>
     <button id="c-inc-up" class="ctl">+1<small>%</small></button>

@@ -26,6 +26,11 @@ export function rampSeconds(delta) {
 
 const ANNOUNCE_LEAD_S = 10; // ile sekund przed segmentem leci zapowiedź
 
+// Krok przycisków ± — w sprincie drobniejszy, bo przy 18 km/h pół kilometra
+// na godzinę to już duża zmiana.
+const KROK_KOREKTY = 0.5;
+const KROK_SPRINTU = 0.2;
+
 // Wykrywanie prędkości zmienionej z panelu bieżni. Bieżnia nie wysyła o tym
 // żadnego zdarzenia — jedynym śladem jest rozjazd między prędkością, którą
 // zamówiliśmy, a tą, którą raportuje pas. W zapisach treningów pas trzyma
@@ -66,7 +71,9 @@ export class WorkoutEngine {
     this.segIndex = 0;
     this.segElapsed = 0;
     this.totalElapsed = 0;
-    this.speedOffset = 0;      // ręczna korekta użytkownika, km/h
+    this.speedOffset = 0;      // korekta ±0,5 dla pracy (ta i kolejne), km/h
+    this.korektaOdcinka = 0;   // korekta ±0,5 tylko dla bieżącego odcinka poza pracą
+    this.korektaSprintow = 0;  // korekta ±0,2 dla sprintu (ten i kolejne), km/h
     this.speedFactor = 1;      // skala calego planu po zmianie z panelu biezni
     this.followManual = true;  // czy w ogole sledzimy panel biezni
     this.inclineOffset = 0;
@@ -118,6 +125,8 @@ export class WorkoutEngine {
     this.segElapsed = 0;
     this.totalElapsed = 0;
     this.speedOffset = 0;
+    this.korektaOdcinka = 0;
+    this.korektaSprintow = 0;
     this.speedFactor = 1;
     this.inclineOffset = 0;
     this._announced = -1;
@@ -151,12 +160,30 @@ export class WorkoutEngine {
   targetSpeedFor(seg) {
     if (!seg) return 0;
     // Współczynnik skaluje cały plan — tak działa prędkość przejęta z panelu
-    // bieżni. Offset z przycisków ekranowych dokłada się osobno, bo to inna
-    // intencja: "ten plan jest za łatwy", a nie "teraz biegnę tyle".
-    const v = seg.speed * this.speedFactor +
-      (seg.kind === 'work' ? this.speedOffset : this.speedOffset * 0.5);
-    return Math.max(0, Math.min(this.profile.maxSpeedCap, Math.round(v * 10) / 10));
+    // bieżni. Korekty z przycisków dokładają się osobno, bo to inna intencja:
+    // "ta praca jest za łatwa", a nie "teraz biegnę tyle".
+    return Math.max(0, Math.min(this.profile.maxSpeedCap,
+      Math.round((seg.speed * this.speedFactor + this._korektaDla(seg)) * 10) / 10));
   }
+
+  /**
+   * Korekta ±0,5 dla odcinka. W pracy dotyczy jej i każdej kolejnej pracy —
+   * przerwa ma zostać przerwą. Poza pracą dotyczy tylko tego jednego odcinka,
+   * a następne biegną już według planu.
+   */
+  _korektaDla(seg) {
+    if (seg.kind === 'work') return this.speedOffset;
+    // Sprint ma własną korektę, osobną od pracy: „biegi są za łatwe" to co
+    // innego niż „sprinty są za łatwe".
+    if (seg.kind === 'sprint') return this.korektaSprintow;
+    return seg === this.segment ? this.korektaOdcinka : 0;
+  }
+
+  /** Korekta obowiązująca teraz — do pokazania na ekranie. */
+  get korektaTeraz() { return this.segment ? this._korektaDla(this.segment) : 0; }
+
+  /** Ile zmienia jedno dotknięcie ± w bieżącym odcinku: w sprincie drobniej. */
+  get krokKorekty() { return this.segment?.kind === 'sprint' ? KROK_SPRINTU : KROK_KOREKTY; }
 
   targetInclineFor(seg) {
     if (!seg) return 0;
@@ -364,6 +391,7 @@ export class WorkoutEngine {
     this.segIndex += 1;
     this.segElapsed = Math.max(0, over);
     this.ramping = null;
+    this.korektaOdcinka = 0;
     const seg = this.segment;
     this._emit('segment', { index: this.segIndex, segment: seg });
     const cue = seg.cue ? ' ' + seg.cue : '';
@@ -384,6 +412,7 @@ export class WorkoutEngine {
     this.totalElapsed -= this.segElapsed;
     this.segIndex -= 1;
     this.segElapsed = 0;
+    this.korektaOdcinka = 0;
     this._announced = -1;
     this._ramped = -1;
     this.applySegment(this.segment);
@@ -431,8 +460,7 @@ export class WorkoutEngine {
   _przejmijZPanelu(pas) {
     const baza = this.segment?.speed;
     if (!baza) return;
-    const offset = this.segment.kind === 'work' ? this.speedOffset : this.speedOffset * 0.5;
-    const chciany = (pas - offset) / baza;
+    const chciany = (pas - this.korektaTeraz) / baza;
     const w = Math.min(WSPOLCZYNNIK_MAX, Math.max(WSPOLCZYNNIK_MIN, chciany));
     this.speedFactor = Math.round(w * 1000) / 1000;
     // Bez tego kolejna rampa ruszyłaby od prędkości, którą ostatnio zamówiliśmy,
@@ -455,12 +483,24 @@ export class WorkoutEngine {
     this.speech?.say('Reszta planu ' + kierunek + ' o ' + Math.abs(proc) + ' procent');
   }
 
-  /** Korekta całego planu w górę lub w dół — przydatna, gdy plan jest za łatwy. */
+  /**
+   * Przyciski ±. Liczy się tylko kierunek — krok wynika z odcinka: 0,5 km/h,
+   * a w sprincie 0,2. W pracy zmieniają tę i każdą kolejną pracę, w sprincie
+   * ten i każdy kolejny sprint, a gdzie indziej tylko bieżący odcinek.
+   * Nowa prędkość idzie do bieżni od razu.
+   */
   adjustSpeed(delta) {
-    this.speedOffset = Math.round((this.speedOffset + delta) * 10) / 10;
-    this._msg('Korekta prędkości: ' + (this.speedOffset >= 0 ? '+' : '') + spoken(this.speedOffset) + ' km/h');
+    const rodzaj = this.segment?.kind;
+    const zmiana = Math.sign(delta) * this.krokKorekty;
+    const zaokr = (x) => Math.round(x * 10) / 10;
+    let opis;
+    if (rodzaj === 'work') { this.speedOffset = zaokr(this.speedOffset + zmiana); opis = 'Korekta pracy: '; }
+    else if (rodzaj === 'sprint') { this.korektaSprintow = zaokr(this.korektaSprintow + zmiana); opis = 'Korekta sprintów: '; }
+    else { this.korektaOdcinka = zaokr(this.korektaOdcinka + zmiana); opis = 'Korekta tego odcinka: '; }
+    const k = this.korektaTeraz;
+    this._msg(opis + (k >= 0 ? '+' : '') + spoken(k) + ' km/h');
     this.applySegment(this.segment);
-    return this.speedOffset;
+    return k;
   }
 
   adjustIncline(delta) {
@@ -610,6 +650,7 @@ export class WorkoutEngine {
       maxHr: hrs.length ? Math.max(...hrs) : null,
       completed: ukonczony,
       speedOffset: this.speedOffset,
+      korektaSprintow: this.korektaSprintow,
       speedFactor: this.speedFactor,
       // Zaplanowany czas pozwala policzyć, jak daleko zaszedłeś w przerwanym
       // treningu — bez tego "przerwany" nie mówi, czy po minucie, czy po pół
