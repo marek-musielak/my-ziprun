@@ -190,12 +190,12 @@ function odswiez() {
 
   const odcinki = m.nazwij(m.rozwin(w.plan.elementy));
   const s = m.podsumowanie(odcinki);
+  // Etykieta w każdej pastylce — sama liczba „23 m" nie mówi, co to jest.
   $('ed-meta').innerHTML = [
-    fmtTime(s.czasS),
-    '~' + s.dystansKm.toFixed(2).replace('.', ',') + ' km',
-    s.odcinkow + ' ' + plural(s.odcinkow, 'odcinek', 'odcinki', 'odcinków'),
-    '↑ ' + Math.round(s.przewyzszenieM) + ' m',
-  ].map((x) => '<span>' + x + '</span>').join('');
+    ['czas', fmtTime(s.czasS)],
+    ['dystans', '~' + s.dystansKm.toFixed(2).replace('.', ',') + ' km'],
+    ['wznios', Math.round(s.przewyzszenieM) + ' m'],
+  ].map(([etykieta, wartosc]) => '<span>' + etykieta + ' <b>' + wartosc + '</b></span>').join('');
   $('ed-chart').innerHTML = chartHtml(
     odcinki.map((o) => ({ kind: o.kind, label: o.label, speed: o.v, duration: o.t })),
     Math.max(...odcinki.map((o) => o.v), 1),

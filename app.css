@@ -14,7 +14,9 @@
   --warn: #ffcb3d;
   --bad: #ff4d5e;
   --warmup: #4a90d9;
-  --work: #ff6a2b;
+  /* Praca odrobinę jaśniejsza od akcentu (#ff6a2b) — lepiej odcina się od
+     ceglastego sprintu. */
+  --work: #ff8246;
   /* Sprint ciemniejszy od pracy, ale z tej samej rodziny — czerwień w aplikacji
      znaczy „stop" i „błąd". */
   --sprint: #d9480f;
@@ -713,4 +715,6 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   overflow: auto; max-height: 380px;
 }
 #ed-link { margin-top: 8px; }
+/* Etykieta przygaszona, wartość jasna — liczba ma być pierwszym, co widać. */
+#ed-meta span b { color: var(--fg); font-weight: 600; }
 .ed-blad { color: var(--bad); }

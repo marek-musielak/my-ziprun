@@ -10,9 +10,18 @@
 // typu "to jeszcze nie jest wypchnięte, więc dopiszę do poprzedniej wersji" —
 // taki wyjątek raz już doprowadził do sześciu commitów pod jednym numerem.
 
-export const VERSION = '1.21.1';
+export const VERSION = '1.21.2';
 
 export const CHANGELOG = [
+  {
+    version: '1.21.2',
+    date: '2026-09-30',
+    title: 'Czytelniejsze podsumowanie w edytorze',
+    changes: [
+      'Pastylki podsumowania w edytorze mają etykiety: czas, dystans, wznios. Liczba odcinków zniknęła.',
+      'Kolor pracy jest odrobinę jaśniejszy i wyraźniej odcina się od ceglastego sprintu — na wykresach, liście odcinków i ekranie treningu.',
+    ],
+  },
   {
     version: '1.21.1',
     date: '2026-09-30',
