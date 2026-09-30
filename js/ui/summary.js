@@ -8,7 +8,8 @@ import { downsample } from './charts.js';
 
 export function showSummary(s) {
   $('sum-title').textContent = s.completed ? 'Trening ukończony' : 'Trening przerwany';
-  $('sum-plan').textContent = s.planName + ' · ' + new Date(s.date).toLocaleString('pl-PL');
+  $('sum-date').textContent = new Date(s.date).toLocaleDateString('pl-PL');
+  $('sum-plan').textContent = s.planName;
   // Przewyższenie tylko po treningu pod górę — na płaskim „0 m up" nic nie mówi.
   $('sum-tiles').innerHTML = [
     [fmtTime(s.durationS), 'czas'],

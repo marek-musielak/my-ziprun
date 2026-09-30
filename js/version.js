@@ -10,9 +10,17 @@
 // typu "to jeszcze nie jest wypchnięte, więc dopiszę do poprzedniej wersji" —
 // taki wyjątek raz już doprowadził do sześciu commitów pod jednym numerem.
 
-export const VERSION = '1.21.3';
+export const VERSION = '1.21.4';
 
 export const CHANGELOG = [
+  {
+    version: '1.21.4',
+    date: '2026-09-30',
+    title: 'Data nad tytułem podsumowania',
+    changes: [
+      'Na ekranie podsumowania data stoi nad napisem „Trening ukończony”, a godzina zniknęła. Nazwa planu zostaje pod tytułem.',
+    ],
+  },
   {
     version: '1.21.3',
     date: '2026-09-30',

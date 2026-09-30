@@ -27,7 +27,7 @@ function sprawdzSpojnoscPlikow() {
   const wymagane = [
     'run-kind', 'run-label', 'run-segtime', 'run-speed', 'run-target', 'run-mini',
     'run-next', 'run-factor', 'kr-typy', 'kr-czas', 'kr-chart', 'btn-new-plan', 'btn-fav', 'btn-mode', 'btn-end', 'c-stop', 'c-pause', 'ring-fg', 'ring-segments',
-    'btn-import-plan', 'p-limits', 'c-faster-krok', 'c-slower-krok', 'pd-leg-sprint',
+    'btn-import-plan', 'p-limits', 'c-faster-krok', 'c-slower-krok', 'pd-leg-sprint', 'sum-date',
   ];
   const brakuje = wymagane.filter((id) => !$(id));
   if (!brakuje.length) return;
